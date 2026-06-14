@@ -1,0 +1,198 @@
+import React, { useState } from 'react';
+import { formatTime } from '../../utils/helpers';
+import { motion, AnimatePresence } from 'framer-motion';
+
+export default function CalendarView({ schedules, onSelectEvent }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [direction, setDirection] = useState(0);
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const monthLabel = currentDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+  const prevMonth = () => {
+    setDirection(-1);
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setDirection(1);
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const goToday = () => {
+    const newDate = new Date();
+    setDirection(newDate > currentDate ? 1 : (newDate < currentDate ? -1 : 0));
+    setCurrentDate(newDate);
+  };
+
+  // Generate cells
+  const cells = [];
+
+  // Spacers for preceding month
+  for (let i = 0; i < firstDayIndex; i++) {
+    cells.push({ type: 'empty', key: `empty-prev-${i}` });
+  }
+
+  // Days in current month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const isToday = isCurrentMonth && today.getDate() === day;
+    
+    // Filter schedules matching this day
+    const dayEvents = schedules.filter(s => {
+      try {
+        const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+        return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    cells.push({
+      type: 'day',
+      day,
+      isToday,
+      events: dayEvents,
+      key: `day-${day}`
+    });
+  }
+
+  // Spacers for succeeding month to complete standard grid (rows of 7)
+  const totalCells = cells.length;
+  const remainingCells = (7 - (totalCells % 7)) % 7;
+  for (let i = 0; i < remainingCells; i++) {
+    cells.push({ type: 'empty', key: `empty-next-${i}` });
+  }
+
+  // Group into weeks
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7));
+  }
+
+  return (
+    <div className="content-panel">
+      <div className="panel-header">
+        <h2>{monthLabel}</h2>
+        <div className="panel-actions">
+          <button className="btn-icon" onClick={prevMonth} title="Previous Month">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <motion.button 
+            className="btn btn-ghost" 
+            onClick={goToday}
+            whileTap={{ scale: 0.85 }}
+            animate={isCurrentMonth ? { scale: [1, 1.02, 1], opacity: [1, 0.8, 1] } : {}}
+            transition={isCurrentMonth ? { repeat: Infinity, duration: 2, ease: "easeInOut" } : {}}
+          >
+            Today
+          </motion.button>
+          <button className="btn-icon" onClick={nextMonth} title="Next Month">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="calendar-wrapper" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+        <div className="calendar-weekdays">
+          <div>Sun</div>
+          <div>Mon</div>
+          <div>Tue</div>
+          <div>Wed</div>
+          <div>Thu</div>
+          <div>Fri</div>
+          <div>Sat</div>
+        </div>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <AnimatePresence custom={direction} mode="popLayout" initial={false}>
+            <motion.div
+              key={`${year}-${month}`}
+              custom={direction}
+              className="calendar-days"
+              style={{ display: 'flex', flexDirection: 'column', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              variants={{
+                enter: { opacity: 1 },
+                center: { opacity: 1 },
+                exit: { opacity: 0, transition: { duration: 0.3, ease: "easeIn" } }
+              }}
+            >
+              {weeks.map((week, wIndex) => (
+                <motion.div
+                  key={`week-${wIndex}`}
+                  custom={direction}
+                  variants={{
+                    enter: (d) => ({ x: d === 0 ? 0 : (d > 0 ? 20 : -20), opacity: 0 }),
+                    center: { x: 0, opacity: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: wIndex * 0.03 } },
+                    exit: (d) => ({ x: d === 0 ? 0 : (d > 0 ? -20 : 20), opacity: 0, transition: { duration: 0.3, ease: "easeIn" } })
+                  }}
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', flex: 1 }}
+                >
+                  {week.map((cell) => {
+                    if (cell.type === 'empty') {
+                      return <div key={cell.key} className="day-cell empty" />;
+                    }
+
+                    return (
+                      <motion.div 
+                        key={cell.key} 
+                        className={`day-cell ${cell.isToday ? 'today' : ''}`}
+                        onClick={() => cell.events.length > 0 && onSelectEvent(cell.events[0])}
+                        whileTap={{ scale: 0.92 }}
+                      >
+                        {cell.isToday ? (
+                          <motion.div 
+                            className="day-header"
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1], delay: 0.15 }}
+                          >
+                            {cell.day}
+                          </motion.div>
+                        ) : (
+                          <div className="day-header">{cell.day}</div>
+                        )}
+                        {cell.events.length > 0 && (
+                          <div className="day-events">
+                            {cell.events.map((ev, evIndex) => (
+                              <motion.div 
+                                key={ev.id} 
+                                className={`event-dot ${ev.status === 'completed' ? 'completed' : ''} ${ev.source === 'google_calendar' ? 'gcal' : ''}`}
+                                title={ev.place}
+                                initial={{ x: -6, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: evIndex * 0.05 }}
+                                whileHover={{ y: -1 }}
+                                whileTap={{ scale: 0.96 }}
+                                style={{ textDecoration: 'none' }}
+                              >
+                                {ev.source === 'google_calendar' && <span style={{ marginRight: '3px' }}>📅</span>}
+                                {ev.place}
+                              </motion.div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}

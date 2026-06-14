@@ -1,0 +1,131 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- Safe Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+    
+    function getEmail() {
+      let token = request.auth.token;
+      let email = 'email' in token ? token.email : null;
+      let customEmail = 'custom_email' in token ? token.custom_email : null;
+      let rawEmail = email != null ? email : (customEmail != null ? customEmail : '');
+      return rawEmail.lower();
+    }
+    
+    // Hardcoded Super Admins (Owners - Full Access)
+    function isSuperAdmin() {
+      return getEmail() == 'bao.h0146824@gmail.com';
+    }
+    
+    function isAllowed() {
+      return exists(/databases/$(database)/documents/allowed_users/$(getEmail()));
+    }
+    
+    // Safely get role
+    function getRole() {
+      let docData = get(/databases/$(database)/documents/allowed_users/$(getEmail())).data;
+      return docData.role != null ? docData.role.lower() : '';
+    }
+    
+    // --- Roles ---
+
+    // IT: Can manage settings, users, classes, schedules
+    function isIT() {
+      return isSuperAdmin() || (isAllowed() && getRole() == 'it');
+    }
+
+    // Coordinator: Can manage users, classes, schedules
+    function isCoordinator() {
+      return isSuperAdmin() || (isAllowed() && getRole() == 'academic_coordinator');
+    }
+    
+    // Teacher: Can manage schedules for their classes
+    function isTeacher() {
+      return isSuperAdmin() || (isAllowed() && getRole() == 'teacher');
+    }
+    
+    // Senior Teacher: Can oversee all classes and members
+    function isSeniorTeacher() {
+      return isSuperAdmin() || (isAllowed() && getRole() == 'senior_teacher');
+    }
+
+    // --- Collection Rules ---
+
+    // 1. Allowed Users: Coordinators, IT, and Senior Teachers can manage
+    // Normal teachers can only read their own user document to check their role
+    match /allowed_users/{email} {
+      allow read: if isSignedIn() && (isIT() || isCoordinator() || isSeniorTeacher() || getEmail() == email);
+      allow write: if isIT() || isCoordinator() || isSeniorTeacher();
+    }
+
+    // 2. Schedules:
+    match /schedules/{scheduleId} {
+      // Read: IT, Coordinator, Senior Teacher, Creator, or Participants
+      allow read: if isSignedIn() && (
+        isIT() || 
+        isCoordinator() || 
+        isSeniorTeacher() ||
+        resource.data.userEmail == getEmail() || 
+        (resource.data.participants != null && resource.data.participants.hasAny([getEmail()])) ||
+        (resource.data.classId != null && exists(/databases/$(database)/documents/classes/$(resource.data.classId)) && get(/databases/$(database)/documents/classes/$(resource.data.classId)).data.participants.hasAny([getEmail()])) ||
+        (resource.data.shareConfig != null && resource.data.shareConfig.allowedEmails != null && resource.data.shareConfig.allowedEmails.hasAny([getEmail()]))
+      );
+   
+      // Create: IT, Coordinator, Senior Teacher, or Teacher
+      allow create: if isSignedIn() && (isIT() || isCoordinator() || isSeniorTeacher() || isTeacher());
+      
+      // Update/Delete: IT, Coordinator, Senior Teacher, or Creator
+      allow update, delete: if isSignedIn() && (
+        isIT() || 
+        isCoordinator() ||
+        isSeniorTeacher() ||
+        resource.data.userEmail == getEmail()
+      );
+    }
+    
+    // 3. System Settings: IT only
+    match /system_settings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isIT();
+    }
+
+    // 4. Classes:
+    match /classes/{classId} {
+      // Read: IT, Coordinator, Senior Teacher, or participant (Teacher/Student)
+      allow read: if isSignedIn() && (
+        isIT() || 
+        isCoordinator() ||
+        isSeniorTeacher() ||
+        (resource.data.participants != null && resource.data.participants.hasAny([getEmail()]))
+      );
+      
+      // Create/Delete: IT, Coordinator, or Senior Teacher
+      allow create, delete: if isIT() || isCoordinator() || isSeniorTeacher();
+      
+      // Update: IT, Coordinator, Senior Teacher, or Teacher (if participant)
+      allow update: if isIT() || isCoordinator() || isSeniorTeacher() || 
+        (isTeacher() && resource.data.participants != null && resource.data.participants.hasAny([getEmail()]));
+    }
+    // 5. Google Calendar Tokens
+    match /gcal_tokens/{uid} {
+      allow read, delete: if isSignedIn() && request.auth.uid == uid;
+      // Note: Creation/Update is handled securely by the backend API using Admin SDK
+    }
+
+    // 6. Auth Sessions (Temporary tokens for Native Google Login)
+    // The sessionId is a random UUID acting as a secret.
+    match /auth_sessions/{sessionId} {
+      allow read: if true;
+      allow delete: if isSignedIn();
+    }
+
+    // 7. System Logs: IT only
+    match /system_logs/{docId} {
+      allow read, write: if isIT();
+    }
+  }
+}

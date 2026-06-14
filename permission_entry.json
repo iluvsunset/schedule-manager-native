@@ -1,0 +1,264 @@
+{
+  "description": "An entry for a permission value in a [`Capability`] can be either a raw permission [`Identifier`] or an object that references a permission and extends its scope.",
+  "anyOf": [
+    {
+      "description": "Reference a permission or permission set by identifier.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Identifier"
+        }
+      ]
+    },
+    {
+      "description": "Reference a permission or permission set by identifier and extends its scope.",
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "identifier": {
+                "anyOf": [
+                  {
+                    "description": "This permission set configures which\nshell functionality is exposed by default.\n\n#### Granted Permissions\n\nIt allows to use the `open` functionality with a reasonable\nscope pre-configured. It will allow opening `http(s)://`,\n`tel:` and `mailto:` links.\n\n#### This default permission set includes:\n\n- `allow-open`",
+                    "type": "string",
+                    "const": "shell:default",
+                    "markdownDescription": "This permission set configures which\nshell functionality is exposed by default.\n\n#### Granted Permissions\n\nIt allows to use the `open` functionality with a reasonable\nscope pre-configured. It will allow opening `http(s)://`,\n`tel:` and `mailto:` links.\n\n#### This default permission set includes:\n\n- `allow-open`"
+                  },
+                  {
+                    "description": "Enables the execute command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:allow-execute",
+                    "markdownDescription": "Enables the execute command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Enables the kill command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:allow-kill",
+                    "markdownDescription": "Enables the kill command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Enables the open command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:allow-open",
+                    "markdownDescription": "Enables the open command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Enables the spawn command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:allow-spawn",
+                    "markdownDescription": "Enables the spawn command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Enables the stdin_write command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:allow-stdin-write",
+                    "markdownDescription": "Enables the stdin_write command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Denies the execute command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:deny-execute",
+                    "markdownDescription": "Denies the execute command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Denies the kill command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:deny-kill",
+                    "markdownDescription": "Denies the kill command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Denies the open command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:deny-open",
+                    "markdownDescription": "Denies the open command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Denies the spawn command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:deny-spawn",
+                    "markdownDescription": "Denies the spawn command without any pre-configured scope."
+                  },
+                  {
+                    "description": "Denies the stdin_write command without any pre-configured scope.",
+                    "type": "string",
+                    "const": "shell:deny-stdin-write",
+                    "markdownDescription": "Denies the stdin_write command without any pre-configured scope."
+                  }
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "allow": {
+                "items": {
+                  "title": "ShellScopeEntry",
+                  "description": "Shell scope entry.",
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "cmd",
+                        "name"
+                      ],
+                      "properties": {
+                        "args": {
+                          "description": "The allowed arguments for the command execution.",
+                          "allOf": [
+                            {
+                              "$ref": "#/definitions/ShellScopeEntryAllowedArgs"
+                            }
+                          ]
+                        },
+                        "cmd": {
+                          "description": "The command name. It can start with a variable that resolves to a system base directory. The variables are: `$AUDIO`, `$CACHE`, `$CONFIG`, `$DATA`, `$LOCALDATA`, `$DESKTOP`, `$DOCUMENT`, `$DOWNLOAD`, `$EXE`, `$FONT`, `$HOME`, `$PICTURE`, `$PUBLIC`, `$RUNTIME`, `$TEMPLATE`, `$VIDEO`, `$RESOURCE`, `$LOG`, `$TEMP`, `$APPCONFIG`, `$APPDATA`, `$APPLOCALDATA`, `$APPCACHE`, `$APPLOG`.",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "The name for this allowed shell command configuration.\n\nThis name will be used inside of the webview API to call this command along with any specified arguments.",
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "sidecar"
+                      ],
+                      "properties": {
+                        "args": {
+                          "description": "The allowed arguments for the command execution.",
+                          "allOf": [
+                            {
+                              "$ref": "#/definitions/ShellScopeEntryAllowedArgs"
+                            }
+                          ]
+                        },
+                        "name": {
+                          "description": "The name for this allowed shell command configuration.\n\nThis name will be used inside of the webview API to call this command along with any specified arguments.",
+                          "type": "string"
+                        },
+                        "sidecar": {
+                          "description": "If this command is a sidecar command.",
+                          "type": "boolean"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "deny": {
+                "items": {
+                  "title": "ShellScopeEntry",
+                  "description": "Shell scope entry.",
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "cmd",
+                        "name"
+                      ],
+                      "properties": {
+                        "args": {
+                          "description": "The allowed arguments for the command execution.",
+                          "allOf": [
+                            {
+                              "$ref": "#/definitions/ShellScopeEntryAllowedArgs"
+                            }
+                          ]
+                        },
+                        "cmd": {
+                          "description": "The command name. It can start with a variable that resolves to a system base directory. The variables are: `$AUDIO`, `$CACHE`, `$CONFIG`, `$DATA`, `$LOCALDATA`, `$DESKTOP`, `$DOCUMENT`, `$DOWNLOAD`, `$EXE`, `$FONT`, `$HOME`, `$PICTURE`, `$PUBLIC`, `$RUNTIME`, `$TEMPLATE`, `$VIDEO`, `$RESOURCE`, `$LOG`, `$TEMP`, `$APPCONFIG`, `$APPDATA`, `$APPLOCALDATA`, `$APPCACHE`, `$APPLOG`.",
+                          "type": "string"
+                        },
+                        "name": {
+                          "description": "The name for this allowed shell command configuration.\n\nThis name will be used inside of the webview API to call this command along with any specified arguments.",
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "sidecar"
+                      ],
+                      "properties": {
+                        "args": {
+                          "description": "The allowed arguments for the command execution.",
+                          "allOf": [
+                            {
+                              "$ref": "#/definitions/ShellScopeEntryAllowedArgs"
+                            }
+                          ]
+                        },
+                        "name": {
+                          "description": "The name for this allowed shell command configuration.\n\nThis name will be used inside of the webview API to call this command along with any specified arguments.",
+                          "type": "string"
+                        },
+                        "sidecar": {
+                          "description": "If this command is a sidecar command.",
+                          "type": "boolean"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "properties": {
+            "identifier": {
+              "description": "Identifier of the permission or permission set.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Identifier"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "properties": {
+            "identifier": {
+              "description": "Identifier of the permission or permission set.",
+              "allOf": [
+                {
+                  "$ref": "#/definitions/Identifier"
+                }
+              ]
+            },
+            "allow": {
+              "description": "Data that defines what is allowed by the scope.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/Value"
+              }
+            },
+            "deny": {
+              "description": "Data that defines what is denied by the scope. This should be prioritized by validation logic.",
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "#/definitions/Value"
+              }
+            }
+          }
+        }
+      ],
+      "required": [
+        "identifier"
+      ]
+    }
+  ]
+}

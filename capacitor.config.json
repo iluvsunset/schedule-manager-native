@@ -1,0 +1,15 @@
+{
+  "appId": "com.sunset.schedule",
+  "appName": "Schedule Manager",
+  "webDir": "dist",
+  "ios": {
+    "backgroundColor": "#0a0a1a",
+    "allowsLinkPreview": false,
+    "scrollEnabled": true
+  },
+  "plugins": {
+    "CapacitorFirebase": {
+      "enablePersistence": true
+    }
+  }
+}

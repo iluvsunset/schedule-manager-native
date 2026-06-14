@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1d1d1f; line-height: 1.5; background-color: #ffffff; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .content { padding: 20px 0; }
+    .class-badge { 
+      display: inline-block;
+      background: #0071e3; 
+      color: #ffffff; 
+      font-weight: 600; 
+      padding: 4px 12px; 
+      border-radius: 6px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      letter-spacing: 1px;
+    }
+    .footer { font-size: 12px; color: #86868b; margin-top: 40px; border-top: 1px solid #eaeaea; padding-top: 20px; text-align: center; }
+    .main-btn {
+      display: inline-block;
+      background: #000000;
+      color: #ffffff !important;
+      padding: 14px 32px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="content">
+      <h2 style="font-weight: 700; margin-top: 0; font-size: 24px; color: #1d1d1f;">You've been added to a Class</h2>
+      <p>Hi {{to_name}},</p>
+      <p>Your teacher has added you to the following class group:</p>
+      
+      <div style="background: #f5f5f7; border-radius: 16px; padding: 32px; text-align: center; margin: 24px 0;">
+        <div class="class-badge">CLASS</div>
+        <h1 style="margin: 0; font-size: 32px; letter-spacing: -0.5px; font-weight: 800;">{{class_name}}</h1>
+      </div>
+      
+      <p style="font-size: 14px; color: #666; text-align: center;">
+        You will now receive schedule updates and notifications for this class automatically.
+      </p>
+      
+      <div style="text-align: center;">
+        <a href="{{dashboard_link}}" class="main-btn">Go to Dashboard</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p style="margin-bottom: 8px;">Schedule Manager Notification System</p>
+      <p style="margin: 0;">&copy; 2026 iluvsunset. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background Gradient: Ultra deep dark minimalist -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1A1A1C" />
+      <stop offset="100%" stop-color="#000000" />
+    </linearGradient>
+
+    <!-- Subtle Glass Gradient -->
+    <linearGradient id="glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#0A84FF" stop-opacity="0.5" />
+    </linearGradient>
+    
+    <linearGradient id="glass-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9" />
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.1" />
+      <stop offset="100%" stop-color="#32D74B" stop-opacity="0.5" />
+    </linearGradient>
+  </defs>
+
+  <!-- App Icon Background -->
+  <rect width="1024" height="1024" rx="225" fill="url(#bg)" />
+  
+  <!-- Ultra minimalistic interlocking thin glass circles -->
+  <g stroke-width="12" fill="none">
+    <!-- Left Circle -->
+    <circle cx="430" cy="512" r="200" stroke="url(#glass-cyan)" />
+    <!-- Right Circle -->
+    <circle cx="594" cy="512" r="200" stroke="url(#glass)" />
+  </g>
+</svg>

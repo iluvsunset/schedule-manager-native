@@ -1,0 +1,11 @@
+# Security: Ignore secrets
+.env
+service-account.json
+vercel-secrets.txt
+node_modules/
+.DS_Store
+.vercel/
+.vercel
+.env*.local
+mobile
+.env*
