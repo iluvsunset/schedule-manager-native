@@ -75,11 +75,6 @@ export async function openGCalAuth(uid) {
         window.open(`${apiBase}/api/gcal-auth?${queryParams}`, '_blank');
       }
     }
-  } else if (isIos()) {
-    // iOS Tauri/Capacitor: Synchronous window.open bypasses popup blocker
-    const isDev = import.meta.env.DEV;
-    const queryParams = `uid=${uid}&native=true${isDev ? '&dev=true' : ''}`;
-    window.open(`${apiBase}/api/gcal-auth?${queryParams}`, '_blank');
   } else if (isCapacitor()) {
     // Capacitor: open in the system browser using Capacitor Browser plugin
     const isDev = import.meta.env.DEV;
@@ -91,6 +86,11 @@ export async function openGCalAuth(uid) {
       // Fallback
       window.open(`${apiBase}/api/gcal-auth?${queryParams}`, '_blank');
     }
+  } else if (isIos()) {
+    // iOS Tauri: Synchronous window.open bypasses popup blocker
+    const isDev = import.meta.env.DEV;
+    const queryParams = `uid=${uid}&native=true${isDev ? '&dev=true' : ''}`;
+    window.open(`${apiBase}/api/gcal-auth?${queryParams}`, '_blank');
   } else {
     // Web: standard redirect
     window.location.href = `/api/gcal-auth?uid=${uid}`;
@@ -112,11 +112,6 @@ export async function openNativeGoogleAuth(sessionId) {
       console.error("Failed to open via plugin-shell, falling back to window.open:", e);
       window.open(`${apiBase}/api/native-google-auth${queryParams}`, '_blank');
     }
-  } else if (isIos()) {
-    // iOS Tauri/Capacitor: Synchronous window.open bypasses popup blocker
-    const isDev = import.meta.env.DEV;
-    const queryParams = `?sessionId=${sessionId}${isDev ? '&dev=true' : ''}`;
-    window.open(`${apiBase}/api/native-google-auth${queryParams}`, '_blank');
   } else if (isCapacitor()) {
     const isDev = import.meta.env.DEV;
     const queryParams = `?sessionId=${sessionId}${isDev ? '&dev=true' : ''}`;
@@ -126,7 +121,36 @@ export async function openNativeGoogleAuth(sessionId) {
     } catch (e) {
       window.open(`${apiBase}/api/native-google-auth${queryParams}`, '_blank');
     }
+  } else if (isIos()) {
+    // iOS Tauri: Synchronous window.open bypasses popup blocker
+    const isDev = import.meta.env.DEV;
+    const queryParams = `?sessionId=${sessionId}${isDev ? '&dev=true' : ''}`;
+    window.open(`${apiBase}/api/native-google-auth${queryParams}`, '_blank');
   } else {
     window.location.href = `/api/native-google-auth?sessionId=${sessionId}`;
+  }
+}
+
+export async function openExternalUrl(url) {
+  if (isDesktopTauri()) {
+    try {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      await openUrl(url);
+    } catch (e) {
+      if (window.__TAURI__ && window.__TAURI__.invoke) {
+        window.__TAURI__.invoke('plugin:opener|open_url', { url });
+      } else {
+        window.open(url, '_blank');
+      }
+    }
+  } else if (isCapacitor()) {
+    try {
+      const { Browser } = await import('@capacitor/browser');
+      await Browser.open({ url });
+    } catch (e) {
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank');
   }
 }

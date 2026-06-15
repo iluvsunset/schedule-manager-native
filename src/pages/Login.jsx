@@ -4,8 +4,7 @@ import { motion } from 'framer-motion';
 import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { signInWithCustomToken } from 'firebase/auth';
 import { db, auth } from '../firebase';
-import { getApiBase, isNative } from '../platform';
-import { openUrl } from '@tauri-apps/plugin-opener';
+import { getApiBase, isNative, openExternalUrl } from '../platform';
 
 const containerVariants = {
   hidden: { opacity: 1 },
@@ -103,18 +102,9 @@ export default function Login() {
         ? `${getApiBase()}/api/native-google-auth?state=${import.meta.env.DEV ? 'dev' : 'prod'}`
         : `${getApiBase()}/api/native-google-auth?sessionId=${sessionId}`;
       
-      if (isNative()) {
-        try {
-          await openUrl(url);
-        } catch (e) {
-          console.error("Tauri plugin-opener failed:", e);
-          window.open(url, '_blank');
-        }
-      } else {
-        window.open(url, '_blank');
-      }
+      await openExternalUrl(url);
     } catch (err) {
-      console.warn("Tauri shell open failed, falling back to window.open", err);
+      console.warn("Auth open failed, falling back to window.open", err);
       const fallbackUrl = isNative()
         ? `${getApiBase()}/api/native-google-auth?state=${import.meta.env.DEV ? 'dev' : 'prod'}`
         : `${getApiBase()}/api/native-google-auth?sessionId=${sessionId}`;
