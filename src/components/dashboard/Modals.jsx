@@ -119,7 +119,7 @@ export function EventDetailModal({ isOpen, onClose, schedule }) {
                 <div className="detail-value">{date ? formatTime(date) : 'All Day'}</div>
               </div>
             </div>
-            {schedule.location && (
+            {schedule.location && !schedule.location.includes('google.com/calendar/event') && (
               <div className="detail-row">
                 <div className="detail-icon"><MapPin size={16} /></div>
                 <div className="detail-content">
@@ -345,7 +345,8 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
       setDate(dateStr);
       setTime(timeStr);
       setPlace(schedule.place || '');
-      setLocation(schedule.location || '');
+      const loc = schedule.location || '';
+      setLocation(loc.includes('google.com/calendar/event') ? '' : loc);
       setNotes(schedule.notes || '');
       setAssignmentTask(schedule.assignmentTask || '');
       setAssignmentLink(schedule.assignmentLink || '');
@@ -603,3 +604,165 @@ export function ShareModal({ isOpen, onClose, schedule, currentUser }) {
       </ModalWrapper>
   );
 }
+
+// ── GOOGLE SYNC PROMPT MODAL ──────────────────────────────────
+export function GoogleSyncPromptModal({ isOpen, onClose, event, schedules }) {
+  const [place, setPlace] = useState('');
+  const [location, setLocation] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+
+  useEffect(() => {
+    if (event) {
+      setPlace(event.place || '');
+      const loc = event.location || '';
+      setLocation(loc.includes('google.com/calendar/event') ? '' : loc);
+
+      // Get autofill suggestions from other events in the same classroom
+      const uniqueSuggestions = [];
+      const seen = new Set();
+
+      schedules.forEach((s) => {
+        if (
+          s.classId === event.classId &&
+          s.place &&
+          s.location &&
+          !s.location.includes('google.com/calendar/event') &&
+          s.id !== event.id
+        ) {
+          const key = `${s.place.trim()}-${s.location.trim()}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueSuggestions.push({
+              place: s.place.trim(),
+              location: s.location.trim()
+            });
+          }
+        }
+      });
+
+      setSuggestions(uniqueSuggestions);
+    }
+  }, [event, schedules, isOpen]);
+
+  if (!event) return null;
+
+  const date = event.date ? (event.date.toDate ? event.date.toDate() : new Date(event.date)) : null;
+
+  const handleSave = async () => {
+    try {
+      await updateDoc(doc(db, 'schedules', event.id), {
+        place: place.trim(),
+        location: location.trim()
+      });
+      localStorage.setItem(`gcal_prompt_dismissed_${event.id}`, 'true');
+      showMessage('Schedule updated successfully!', 'success');
+      onClose();
+    } catch (err) {
+      showMessage('Error saving schedule: ' + err.message, 'error');
+    }
+  };
+
+  const handleSkip = () => {
+    localStorage.setItem(`gcal_prompt_dismissed_${event.id}`, 'true');
+    onClose();
+  };
+
+  const selectSuggestion = (sug) => {
+    setPlace(sug.place);
+    setLocation(sug.location);
+  };
+
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={handleSkip} maxWidth="500px">
+      <div className="modal-header">
+        <h3>Google Sync - Specify Location</h3>
+        <button className="modal-close" onClick={handleSkip}>×</button>
+      </div>
+      <div className="modal-body">
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.4' }}>
+          We detected an upcoming Google Calendar synced event: <strong>{event.place}</strong> on {date ? date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'unknown date'}.
+        </p>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Event Name / Topic</label>
+          <input 
+            type="text" 
+            placeholder="e.g. Mathematics 101" 
+            value={place} 
+            onChange={(e) => setPlace(e.target.value)} 
+            style={{ width: '100%', marginTop: '4px' }}
+          />
+        </div>
+
+        <div className="form-group" style={{ marginBottom: '16px' }}>
+          <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Location / Map Link</label>
+          <input 
+            type="text" 
+            placeholder="e.g. Room 101, Zoom link, or Google Maps URL" 
+            value={location} 
+            onChange={(e) => setLocation(e.target.value)} 
+            style={{ width: '100%', marginTop: '4px' }}
+          />
+        </div>
+
+        {suggestions.length > 0 && (
+          <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--brand-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>
+              Quick Fill from Classroom History
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '150px', overflowY: 'auto' }}>
+              {suggestions.map((sug, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => selectSuggestion(sug)}
+                  style={{
+                    textAlign: 'left',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                    e.currentTarget.style.borderColor = 'var(--border-default)';
+                  }}
+                >
+                  <div style={{ fontWeight: 600 }}>{sug.place}</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    {sug.location}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="modal-footer" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', padding: '16px 24px' }}>
+        <button 
+          className="btn btn-secondary" 
+          onClick={handleSkip}
+          style={{ minWidth: '80px' }}
+        >
+          Skip
+        </button>
+        <button 
+          className="btn btn-primary" 
+          onClick={handleSave}
+          style={{ minWidth: '120px' }}
+        >
+          Save & Continue
+        </button>
+      </div>
+    </ModalWrapper>
+  );
+}
+

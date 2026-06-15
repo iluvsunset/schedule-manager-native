@@ -39,7 +39,8 @@ import {
   CreateEventModal,
   EditEventModal,
   ShareModal,
-  ConfirmModal
+  ConfirmModal,
+  GoogleSyncPromptModal
 } from '../components/dashboard/Modals';
 import { showMessage, sendDynamicEmail, formatTime, formatDate } from '../utils/helpers';
 import { Wrench, Megaphone } from 'lucide-react';
@@ -73,6 +74,9 @@ export default function Dashboard() {
   const [editEvent, setEditEvent] = useState(null);
   const [shareEvent, setShareEvent] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [syncPromptEvent, setSyncPromptEvent] = useState(null);
+  const [syncPromptOpen, setSyncPromptOpen] = useState(false);
+
 
   // 1. Fetch Classes (for Context Selector or Student Enrollment list)
   useEffect(() => {
@@ -143,6 +147,50 @@ export default function Dashboard() {
 
     return unsubscribe;
   }, [currentUser, userRole]);
+
+  // 2b. Check for upcoming Google synced events to prompt the teacher
+  useEffect(() => {
+    if (loading || !currentUser || !userRole || schedules.length === 0) return;
+    
+    // Check if the user is a teacher
+    const isTeacherRole = ['teacher', 'senior_teacher'].includes(userRole);
+    if (!isTeacherRole) return;
+
+    // Find upcoming/ongoing Google Calendar synced events
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const googleEvents = schedules.filter(s => 
+      s.source === 'google_calendar' && 
+      s.status !== 'completed' && 
+      s.status !== 'cancelled'
+    );
+
+    if (googleEvents.length === 0) return;
+
+    // Sort by date ascending (nearest first)
+    googleEvents.sort((a, b) => {
+      const da = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+      const db = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+      return da - db;
+    });
+
+    // Find the nearest upcoming/ongoing event starting from today
+    const nearest = googleEvents.find(s => {
+      const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
+      return d >= startOfToday;
+    });
+
+    if (nearest) {
+      // Check if this event was already dismissed/skipped
+      const dismissed = localStorage.getItem(`gcal_prompt_dismissed_${nearest.id}`);
+      if (!dismissed) {
+        setSyncPromptEvent(nearest);
+        setSyncPromptOpen(true);
+      }
+    }
+  }, [loading, currentUser, userRole, schedules]);
+
 
   // 3. Monitor System Maintenance & Broadcast
   useEffect(() => {
@@ -630,6 +678,14 @@ export default function Dashboard() {
         }}
         onCancel={() => setConfirmAction(null)}
       />
+
+      <GoogleSyncPromptModal
+        isOpen={syncPromptOpen}
+        onClose={() => setSyncPromptOpen(false)}
+        event={syncPromptEvent}
+        schedules={schedules}
+      />
     </motion.div>
+
   );
 }

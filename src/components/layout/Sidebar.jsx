@@ -72,7 +72,7 @@ export default function Sidebar({
       dateLabel = diffDays === 0 ? 'Today' : (diffDays === 1 ? 'Tomorrow' : start.toLocaleDateString());
     }
 
-    if (nextEvent.location && (nextEvent.location.startsWith('http') || nextEvent.location.startsWith('www'))) {
+    if (nextEvent.location && (nextEvent.location.startsWith('http') || nextEvent.location.startsWith('www')) && !nextEvent.location.includes('google.com/calendar/event')) {
       linkUrl = nextEvent.location.startsWith('www') ? 'https://' + nextEvent.location : nextEvent.location;
     }
   }

@@ -2110,9 +2110,21 @@ select {
   margin-bottom: 2px;
 }
 
+.detail-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .detail-value {
   font-size: 14px;
   color: var(--text-primary);
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.detail-value a {
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 /* ── Admin panel layout & Controls ──────────────────────────── */
@@ -3423,6 +3435,7 @@ input:checked + .slider:before {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .m-detail-label {
@@ -3437,6 +3450,13 @@ input:checked + .slider:before {
   font-size: 14px;
   color: var(--text-primary);
   line-height: 1.4;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.m-detail-value a {
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .m-detail-section {

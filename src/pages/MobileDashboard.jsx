@@ -570,7 +570,7 @@ export default function MobileDashboard({
                         </div>
                         <div className="m-event-meta">
                           {date && <span className="m-event-time">{formatTime(date)}</span>}
-                          {schedule.location && (
+                          {schedule.location && !schedule.location.includes('google.com/calendar/event') && (
                             <span className="m-event-location">📍 {schedule.location}</span>
                           )}
                         </div>
@@ -833,7 +833,7 @@ export default function MobileDashboard({
               </div>
 
               {/* Location */}
-              {selectedEvent.location && (
+              {selectedEvent.location && !selectedEvent.location.includes('google.com/calendar/event') && (
                 <div className="m-detail-row">
                   <span className="m-detail-icon"><MapPin size={18} /></span>
                   <div className="m-detail-content">

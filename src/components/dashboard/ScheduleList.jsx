@@ -96,7 +96,7 @@ export default function ScheduleList({
             const showDelete = canDeleteSchedule(schedule);
 
             let linkUrl = null;
-            if (schedule.location && (schedule.location.startsWith('http') || schedule.location.startsWith('www'))) {
+            if (schedule.location && (schedule.location.startsWith('http') || schedule.location.startsWith('www')) && !schedule.location.includes('google.com/calendar/event')) {
               linkUrl = schedule.location.startsWith('www') ? 'https://' + schedule.location : schedule.location;
             }
 
@@ -146,7 +146,7 @@ export default function ScheduleList({
                       <span className="schedule-weekday">{date.toLocaleString('en-US', { weekday: 'short' })}</span>
                       <span>{formatTime(date)}</span>
                     </div>
-                    {schedule.location && (
+                    {schedule.location && !schedule.location.includes('google.com/calendar/event') && (
                       <div className="schedule-location" style={{ marginTop: '4px', fontSize: '12px', color: 'var(--brand-primary)', wordBreak: 'break-all' }}>
                         📍 {schedule.location}
                       </div>

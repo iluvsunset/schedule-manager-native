@@ -64,7 +64,7 @@ export async function openGCalAuth(uid) {
     // Tauri Desktop: use the Tauri shell open command to open in default browser
     const isDev = import.meta.env.DEV;
     const queryParams = `uid=${uid}&native=true${isDev ? '&dev=true' : ''}`;
-    
+
     try {
       const { openUrl } = await import('@tauri-apps/plugin-opener');
       await openUrl(`${apiBase}/api/gcal-auth?${queryParams}`);
