@@ -7,8 +7,6 @@ import Dashboard from './pages/Dashboard.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
 import SyncStatusIndicator from './components/SyncStatusIndicator.jsx';
 import NotificationManager from './components/NotificationManager.jsx';
-import BrowserDeprecation from './components/BrowserDeprecation.jsx';
-import { isBrowser } from './platform.js';
 import UpdateModal from './components/UpdateModal.jsx';
 
 function AnimatedRoutes() {
@@ -33,10 +31,6 @@ function AnimatedRoutes() {
 }
 
 function App() {
-  if (isBrowser()) {
-    return <BrowserDeprecation />;
-  }
-
   return (
     <AuthProvider>
       <Router>
