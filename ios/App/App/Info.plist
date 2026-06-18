@@ -62,5 +62,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.sunset.schedule.sync</string>
+	</array>
 </dict>
 </plist>

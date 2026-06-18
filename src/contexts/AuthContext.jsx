@@ -123,7 +123,7 @@ export function AuthProvider({ children }) {
               }
             }
             
-            if (user.email.toLowerCase() === 'bao.h0146824@gmail.com') {
+            if (user.email.toLowerCase() === 'bao.h0146824@gmail.com' || user.email.toLowerCase() === 'sunsetmyfav@gmail.com') {
               role = 'it';
             }
             
@@ -328,7 +328,7 @@ export function AuthProvider({ children }) {
   const canEditSchedule = (schedule) => {
     if (!currentUser) return false;
     const role = userRole || 'student';
-    if (role === 'it' || role === 'academic_coordinator') return true;
+    if (role === 'it' || role === 'academic_coordinator' || role === 'senior_teacher') return true;
     if (role === 'teacher') return schedule.userEmail?.toLowerCase() === currentUser.email.toLowerCase() || schedule.classId;
     return dynamicOverrides[`edit_schedule_${role}`] === true;
   };
@@ -336,7 +336,7 @@ export function AuthProvider({ children }) {
   const canDeleteSchedule = (schedule) => {
     if (!currentUser) return false;
     const role = userRole || 'student';
-    if (role === 'it' || role === 'academic_coordinator') return true;
+    if (role === 'it' || role === 'academic_coordinator' || role === 'senior_teacher') return true;
     if (role === 'teacher') return schedule.userEmail?.toLowerCase() === currentUser.email.toLowerCase();
     return dynamicOverrides[`delete_schedule_${role}`] === true;
   };

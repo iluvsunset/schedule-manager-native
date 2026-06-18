@@ -3,26 +3,55 @@ const { admin, getOAuthClient, sendEmail } = require('./_utils');
 const { google } = require('googleapis');
 
 module.exports = async function handler(req, res) {
-  // Webhooks must always return 200 quickly so Google doesn't retry
-  res.status(200).send('Webhook received');
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-goog-channel-token, x-goog-resource-state, x-goog-resource-id');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   try {
-    const resourceState = req.headers['x-goog-resource-state'];
-    if (resourceState === 'sync') {
-      console.log('Received initial Google Calendar sync webhook. Ignoring.');
-      return;
-    }
-
-    const uid = req.headers['x-goog-channel-token'];
-    if (!uid) {
-      console.error('Webhook missing x-goog-channel-token');
-      return;
-    }
-
-    console.log(`Processing GCal Webhook for UID: ${uid}`);
-
     const db = admin.firestore();
     try { db.settings({ preferRest: true }); } catch (e) { }
+
+    let uidList = [];
+    let isManualSync = false;
+
+    if (req.body && req.body.idToken) {
+      // Manual Trigger Flow
+      isManualSync = true;
+      const decoded = await admin.auth().verifyIdToken(req.body.idToken);
+      const userSnap = await db.collection('allowed_users').doc(decoded.email.toLowerCase()).get();
+      if (!userSnap.exists || userSnap.data().role !== 'it') {
+        return res.status(403).json({ error: 'Unauthorized admin' });
+      }
+      const allTokens = await db.collection('gcal_tokens').get();
+      allTokens.forEach(doc => uidList.push(doc.id));
+      console.log(`Manual GCal Sync triggered by IT: ${decoded.email} for ${uidList.length} users`);
+    } else {
+      // Normal Webhook Flow
+      const resourceState = req.headers['x-goog-resource-state'];
+      if (resourceState === 'sync') {
+        console.log('Received initial Google Calendar sync webhook. Ignoring.');
+        return res.status(200).send('Sync webhook received');
+      }
+
+      const uid = req.headers['x-goog-channel-token'];
+      if (!uid) {
+        console.error('Webhook missing x-goog-channel-token');
+        return res.status(400).send('Missing x-goog-channel-token');
+      }
+      uidList.push(uid);
+    }
+
+    async function processUid(uid) {
+      console.log(`Processing GCal Sync for UID: ${uid}`);
+      const emailPromises = [];
+
+
 
     // 1. Fetch User's Google Token
     const tokenSnap = await db.collection('gcal_tokens').doc(uid).get();
@@ -46,15 +75,20 @@ module.exports = async function handler(req, res) {
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-    // 3. Fetch recently updated events (last 10 minutes to be safe)
+    // 3. Fetch recently modified events
     const updatedMin = new Date();
-    updatedMin.setMinutes(updatedMin.getMinutes() - 10);
+    if (isManualSync) {
+      updatedMin.setHours(updatedMin.getHours() - 24); // Look back 24 hours for manual syncs to catch missed updates
+    } else {
+      updatedMin.setMinutes(updatedMin.getMinutes() - 10); // Look back 10 mins for webhook triggers
+    }
 
     const eventsRes = await calendar.events.list({
       calendarId: 'primary',
       updatedMin: updatedMin.toISOString(),
       singleEvents: true,
       maxResults: 50,
+      showDeleted: true,
     });
 
     const fetchedEvents = eventsRes.data.items || [];
@@ -103,11 +137,51 @@ module.exports = async function handler(req, res) {
         if (event.status === 'cancelled') {
           // Handle deletions
           if (!dupSnap.empty) {
+            const data = dupSnap.docs[0].data();
             for (const doc of dupSnap.docs) {
               await doc.ref.delete();
               deletedCount++;
             }
             console.log(`Deleted cancelled GCal event ID: ${event.id}`);
+
+            // Send cancellation emails to students
+            let participants = data.participants;
+            if (!participants || !Array.isArray(participants)) {
+              if (data.classId) {
+                const classSnap = await db.collection('classes').doc(data.classId).get();
+                if (classSnap.exists) {
+                  participants = classSnap.data().participants || [];
+                }
+              }
+            }
+
+            if (participants && Array.isArray(participants)) {
+              const studentEmails = [];
+              for (const email of participants) {
+                const uSnap = await db.collection('allowed_users').doc(email.toLowerCase()).get();
+                if (uSnap.exists && uSnap.data().role === 'student') {
+                  studentEmails.push(email);
+                }
+              }
+              if (studentEmails.length > 0) {
+                const html = `
+                  <div style="font-family: sans-serif; padding: 20px;">
+                    <h2 style="color: #EF4444;">Class Event Cancelled!</h2>
+                    <p><strong>${data.place || 'An event'}</strong> has been cancelled.</p>
+                    <br>
+                    <a href="https://schedule-iluvsunset.vercel.app/" style="padding: 10px 20px; background: #EF4444; color: white; text-decoration: none; border-radius: 5px;">View Schedule</a>
+                  </div>
+                `;
+                for (const email of studentEmails) {
+                  const subject = `Cancelled Event (GCal Auto): ${data.place || 'Class Event'}`;
+                  emailPromises.push(
+                    sendEmail(db, email, subject, html)
+                      .then(() => console.log(`[Email] Sent cancellation notice to ${email}`))
+                      .catch(e => console.error('Webhook Deletion Email Error:', e.message))
+                  );
+                }
+              }
+            }
           }
           continue; 
         }
@@ -121,6 +195,10 @@ module.exports = async function handler(req, res) {
         if (!dupSnap.empty) {
           // UPDATE existing event
           const existingDoc = dupSnap.docs[0];
+          const data = existingDoc.data();
+          const oldStart = data.date ? data.date.toDate() : null;
+          const hasTimeChanged = oldStart ? (oldStart.getTime() !== start.getTime()) : false;
+
           await existingDoc.ref.update({
             date: admin.firestore.Timestamp.fromDate(start),
             place: summary || 'Google Calendar Event',
@@ -129,6 +207,62 @@ module.exports = async function handler(req, res) {
           });
           console.log(`Updated existing GCal event: ${summary}`);
           updatedCount++;
+
+          // Send update emails to students if time/date changed
+          let participants = data.participants;
+          if (!participants || !Array.isArray(participants)) {
+            if (data.classId) {
+              const classSnap = await db.collection('classes').doc(data.classId).get();
+              if (classSnap.exists) {
+                participants = classSnap.data().participants || [];
+              }
+            }
+          }
+
+          if (hasTimeChanged && participants && Array.isArray(participants)) {
+            const studentEmails = [];
+            for (const email of participants) {
+              const uSnap = await db.collection('allowed_users').doc(email.toLowerCase()).get();
+              if (uSnap.exists && uSnap.data().role === 'student') {
+                studentEmails.push(email);
+              }
+            }
+            if (studentEmails.length > 0) {
+              const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+              
+              // format time helper
+              const formatTime = (d) => {
+                return d.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                });
+              };
+              
+              const timeStr = event.start.dateTime ? formatTime(start) : 'All Day';
+              const oldTimeStr = oldStart ? (oldStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + (event.start.dateTime ? formatTime(oldStart) : 'All Day')) : 'N/A';
+
+              const html = `
+                <div style="font-family: sans-serif; padding: 20px;">
+                  <h2 style="color: #3B82F6;">Class Event Rescheduled!</h2>
+                  <p><strong>${summary}</strong> has been rescheduled.</p>
+                  <p><strong>Previous Time:</strong> <span style="text-decoration: line-through; color: #EF4444;">${oldTimeStr}</span></p>
+                  <p><strong>New Time:</strong> <span style="color: #10B981; font-weight: bold;">${formattedDate} at ${timeStr}</span></p>
+                  <br>
+                  <a href="https://schedule-iluvsunset.vercel.app/" style="padding: 10px 20px; background: #3B82F6; color: white; text-decoration: none; border-radius: 5px;">View Schedule</a>
+                </div>
+              `;
+              for (const email of studentEmails) {
+                const subject = `Rescheduled Event (GCal Auto): ${summary}`;
+                emailPromises.push(
+                  sendEmail(db, email, subject, html)
+                    .then(() => console.log(`[Email] Sent reschedule notice to ${email}`))
+                    .catch(e => console.error('Webhook Update Email Error:', e.message))
+                );
+              }
+            }
+          }
+
           continue;
         }
   
@@ -152,7 +286,7 @@ module.exports = async function handler(req, res) {
           gcalEventId: event.id
         };
   
-        await db.collection('schedules').add(scheduleData);
+        await db.collection('schedules').doc('gcal_' + event.id).set(scheduleData);
         
         console.log(`Auto-shared GCal event: ${summary} to class ${rule.className}`);
         autoSharedCount++;
@@ -193,7 +327,11 @@ module.exports = async function handler(req, res) {
 
             for (const email of studentEmails) {
               const subject = `New Event (GCal Auto): ${scheduleData.place}`;
-              sendEmail(db, email, subject, html).catch(e => console.error('Webhook Email Error:', e.message));
+              emailPromises.push(
+                sendEmail(db, email, subject, html)
+                  .then(() => console.log(`[Email] Sent creation notice to ${email}`))
+                  .catch(e => console.error('Webhook Email Error:', e.message))
+              );
             }
           }
         }
@@ -221,11 +359,29 @@ module.exports = async function handler(req, res) {
       console.error('Failed to write system log:', logErr.message);
     }
 
+    if (emailPromises.length > 0) {
+      console.log(`Awaiting ${emailPromises.length} email deliveries...`);
+      await Promise.all(emailPromises);
+    }
+ 
     if (autoSharedCount > 0 || updatedCount > 0 || deletedCount > 0) {
       console.log(`Successfully synced auto-shared ${autoSharedCount}, updated ${updatedCount}, and deleted ${deletedCount} events via webhook.`);
     }
 
+    }
+    
+    // Execute for all UIDs
+    for (const u of uidList) {
+      await processUid(u);
+    }
+
+    if (isManualSync) {
+      return res.status(200).json({ success: true, processedUids: uidList.length });
+    } else {
+      return res.status(200).send('Webhook received');
+    }
   } catch (error) {
     console.error('Webhook processing error:', error);
+    return res.status(500).json({ error: error.message });
   }
 };

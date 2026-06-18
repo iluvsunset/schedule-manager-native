@@ -123,9 +123,10 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
 
-    // 7. System Logs: IT only
+    // 7. System Logs: Write for all authenticated users, Read for IT only
     match /system_logs/{docId} {
-      allow read, write: if isIT();
+      allow read: if isIT();
+      allow write: if isSignedIn();
     }
   }
 }

@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { getApiBase } from '../platform';
+import { getApiBase, getWebDomain } from '../platform';
 import { showMessage, formatTime, formatDate } from '../utils/helpers';
 import Topbar from '../components/layout/Topbar';
 import { ConfirmModal } from '../components/dashboard/Modals';
@@ -14,7 +14,7 @@ import {
   Users, BookOpen, Settings, ArrowLeft, Search, LogOut, UserX, UserPlus, 
   PieChart, Edit, Trash2, PlusSquare, Monitor, 
   Wrench, Link as LinkIcon, ShieldAlert, Megaphone, ScrollText, CalendarX2,
-  Server, Shield, Mail, AlertTriangle, Database, FastForward
+  Server, Shield, Mail, AlertTriangle, Database, FastForward, Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WebGLBackground from '../components/WebGLBackground';
@@ -353,7 +353,7 @@ export default function AdminPanel() {
                 to_name: email.split('@')[0],
                 subject: `You have been enrolled in ${editClass.className}`,
                 email_type: 'class_invite',
-                template_data: { class_name: editClass.className, link: window.location.origin }
+                template_data: { class_name: editClass.className, link: getWebDomain() }
               })
             });
           } catch (e) {
@@ -655,6 +655,50 @@ export default function AdminPanel() {
     });
   };
 
+  const handleRunCronJob = async () => {
+    try {
+      showMessage('Triggering Daily Cron Job...', 'success');
+      const idToken = await auth.currentUser.getIdToken();
+      const apiBase = getApiBase();
+      
+      const response = await fetch(`${apiBase}/api/cron`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to run cron job');
+      
+      showMessage(`Cron success: ${result.emails_successful} sent, ${result.channels_renewed} webhooks renewed`, 'success');
+      await writeSystemLog('admin_action', 'admin_panel', `Triggered manual cron job`, result);
+    } catch (err) {
+      showMessage(err.message, 'error');
+    }
+  };
+
+  const handleForceGCalSync = async () => {
+    try {
+      showMessage('Triggering manual GCal sync...', 'success');
+      const idToken = await auth.currentUser.getIdToken();
+      const apiBase = getApiBase();
+      
+      const response = await fetch(`${apiBase}/api/gcal-webhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Failed to sync GCal');
+      
+      showMessage(`GCal Sync completed for ${result.processedUids} user accounts!`, 'success');
+      await writeSystemLog('admin_action', 'admin_panel', `Triggered manual GCal sync`, result);
+    } catch (err) {
+      showMessage(err.message, 'error');
+    }
+  };
+
   // Reset ALL Google Calendar Schedules + Auto-Share Rules
   const handleResetGCalSchedules = async () => {
     try {
@@ -844,16 +888,16 @@ export default function AdminPanel() {
 
       if (testTemplate === 'schedule_created') {
         subject = 'New Event: Science Lab (Test)';
-        data = { place: 'Science Lab', time: '11:00 AM', date: 'Tomorrow', notes: 'Prepare goggles.', link: window.location.origin };
+        data = { place: 'Science Lab', time: '11:00 AM', date: 'Tomorrow', notes: 'Prepare goggles.', link: getWebDomain() };
       } else if (testTemplate === 'schedule_reminder') {
         subject = 'Reminder: Oral Presentation';
-        data = { place: 'Oral Presentation', time: '1:00 PM', date: 'Today', link: window.location.origin };
+        data = { place: 'Oral Presentation', time: '1:00 PM', date: 'Today', link: getWebDomain() };
       } else if (testTemplate === 'review_sent') {
         subject = 'Lesson Review: Literature';
-        data = { place: 'Literature 10A', review_snippet: 'Well done writing your essays!', link: window.location.origin };
+        data = { place: 'Literature 10A', review_snippet: 'Well done writing your essays!', link: getWebDomain() };
       } else if (testTemplate === 'class_invite') {
         subject = 'You have been added to Class 12B';
-        data = { class_name: 'Class 12B (Test)', link: window.location.origin };
+        data = { class_name: 'Class 12B (Test)', link: getWebDomain() };
       }
 
       const apiBase = getApiBase();
@@ -1307,6 +1351,25 @@ export default function AdminPanel() {
                             <button onClick={handleResetGCalSchedules} className="glow-button btn btn-full" style={{ fontSize: '13px', padding: '12px', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px' }}>
                               <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CalendarX2 size={14}/></div>
                               Reset GCal Schedules
+                            </button>
+                          </div>
+                        </motion.div>
+
+                        {/* Manual Triggers */}
+                        <motion.div 
+                          className="glass-it-card" 
+                          variants={{ hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1 } }}
+                          style={{ borderTop: '4px solid rgba(234, 179, 8, 0.5)' }}
+                        >
+                          <h4 style={{ color: '#eab308', fontSize: '15px', marginBottom: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.05em' }}>
+                            <Zap size={18} /> MANUAL TRIGGERS
+                          </h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <button onClick={handleRunCronJob} className="glow-button btn btn-full" style={{ fontSize: '13px', padding: '12px', color: '#eab308', borderColor: 'rgba(234, 179, 8, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              Run Daily Cron Job
+                            </button>
+                            <button onClick={handleForceGCalSync} className="glow-button btn btn-full" style={{ fontSize: '13px', padding: '12px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              Force GCal Sync
                             </button>
                           </div>
                         </motion.div>

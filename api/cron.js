@@ -24,9 +24,34 @@ if (!admin.apps.length) {
 }
 
 module.exports = async function handler(req, res) {
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   // 1. Security Check (CRON_SECRET)
+  let isAuthorized = false;
+  let manualTriggerUser = null;
+  
+  if (req.body && req.body.idToken) {
+    try {
+      const decoded = await admin.auth().verifyIdToken(req.body.idToken);
+      const userSnap = await admin.firestore().collection('allowed_users').doc(decoded.email.toLowerCase()).get();
+      if (userSnap.exists && userSnap.data().role === 'it') {
+        isAuthorized = true;
+        manualTriggerUser = decoded.email;
+      }
+    } catch (e) {
+      console.error('Manual cron auth failed:', e);
+    }
+  }
+
   const authHeader = req.headers.authorization;
-  if (req.headers['x-vercel-cron'] !== '1' && (!authHeader || !authHeader.startsWith('Bearer ' + process.env.CRON_SECRET))) {
+  if (!isAuthorized && req.headers['x-vercel-cron'] !== '1' && (!authHeader || !authHeader.startsWith('Bearer ' + process.env.CRON_SECRET))) {
     if (!process.env.CRON_SECRET) {
       console.warn("Warning: CRON_SECRET not set. Skipping auth check (Dangerous in Prod).");
     } else {

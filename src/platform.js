@@ -30,6 +30,10 @@ export function isBrowser() {
   return !isNative();
 }
 
+export function getWebDomain() {
+  return 'https://schedule-iluvsunset.vercel.app';
+}
+
 /**
  * Returns the current platform name for logging
  */

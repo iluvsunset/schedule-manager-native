@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getApiBase } from '../../platform';
-import { collection, onSnapshot, query, where, addDoc, getDoc, getDocs, doc, updateDoc, arrayUnion, Timestamp } from 'firebase/firestore';
+import { getApiBase, getWebDomain } from '../../platform';
+import { collection, onSnapshot, query, where, addDoc, getDoc, getDocs, doc, updateDoc, arrayUnion, Timestamp, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { showMessage, sendDynamicEmail, formatTime } from '../../utils/helpers';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,6 +32,7 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
   const [sharing, setSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
   const [nameSearch, setNameSearch] = useState('');
+  const [unsharingEventId, setUnsharingEventId] = useState(null);
 
   // Sync selectedClassId with topbar context
   useEffect(() => {
@@ -121,6 +122,73 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
     setEvents([]);
     showMessage('Google Calendar disconnected.', 'success');
   };
+
+  const handleUnshareEvent = async (eventId) => {
+    if (!currentUser) return;
+    setUnsharingEventId(eventId);
+    try {
+      const q = query(
+        collection(db, 'schedules'),
+        where('gcalEventId', '==', eventId)
+      );
+      const snap = await getDocs(q);
+      const deletePromises = [];
+      snap.forEach(d => {
+        deletePromises.push(deleteDoc(doc(db, 'schedules', d.id)));
+      });
+      await Promise.all(deletePromises);
+      
+      // Update local sharedIds state
+      setSharedIds(prev => {
+        const next = new Set(prev);
+        next.delete(eventId);
+        return next;
+      });
+      
+      showMessage('Removed event from shared schedules.', 'success');
+    } catch (err) {
+      console.error(err);
+      showMessage('Failed to unshare event: ' + err.message, 'error');
+    } finally {
+      setUnsharingEventId(null);
+    }
+  };
+
+  const handleCancelAllSharing = async () => {
+    if (!currentUser || matchingEvents.length === 0) return;
+    setSharing(true);
+    try {
+      const deletePromises = [];
+      for (const event of matchingEvents) {
+        const q = query(
+          collection(db, 'schedules'),
+          where('gcalEventId', '==', event.id)
+        );
+        const snap = await getDocs(q);
+        snap.forEach(d => {
+          deletePromises.push(deleteDoc(doc(db, 'schedules', d.id)));
+        });
+      }
+      await Promise.all(deletePromises);
+      
+      // Update local sharedIds state
+      setSharedIds(prev => {
+        const next = new Set(prev);
+        matchingEvents.forEach(event => next.delete(event.id));
+        return next;
+      });
+      
+      showMessage('Removed matching events from shared schedules.', 'success');
+      setWizardOpen(false); // Close wizard
+    } catch (err) {
+      console.error(err);
+      showMessage('Failed to cancel sharing: ' + err.message, 'error');
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const allAlreadyShared = matchingEvents.length > 0 && matchingEvents.every(e => sharedIds.has(e.id));
 
   // ── WIZARD HELPERS ──────────────────────────────────────────
   const uniqueEventNames = React.useMemo(() => {
@@ -241,7 +309,7 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
         const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const timeStr = firstEvent.start.dateTime ? formatTime(start) : 'All Day';
         for (const email of studentEmails) {
-          const emailData = { place: selectedEventName, date: formattedDate, time: timeStr, notes: additionalNotes, link: window.location.origin };
+          const emailData = { place: selectedEventName, date: formattedDate, time: timeStr, notes: additionalNotes, link: getWebDomain() };
           await sendDynamicEmail(currentUser, email, email.split('@')[0], `New Event (GCal): ${selectedEventName}`, emailData, 'schedule_created');
         }
       }
@@ -567,13 +635,15 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
                     </div>
 
                     <motion.button
-                      className="gcal-wizard-next-btn"
-                      onClick={() => setWizardStep(3)}
+                      className={allAlreadyShared ? "gcal-wizard-next-btn danger" : "gcal-wizard-next-btn"}
+                      onClick={allAlreadyShared ? handleCancelAllSharing : () => setWizardStep(3)}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
+                      style={allAlreadyShared ? { background: '#ef4444', borderColor: '#ef4444', color: 'white' } : {}}
+                      disabled={sharing}
                     >
-                      Continue to Share
-                      <ChevronRight size={18} />
+                      {sharing ? 'Processing...' : allAlreadyShared ? 'Cancel Sharing' : 'Continue to Share'}
+                      {!sharing && <ChevronRight size={18} />}
                     </motion.button>
                   </motion.div>
                 )}

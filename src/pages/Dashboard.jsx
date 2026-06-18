@@ -45,6 +45,7 @@ import {
 import { showMessage, sendDynamicEmail, formatTime, formatDate } from '../utils/helpers';
 import { Wrench, Megaphone } from 'lucide-react';
 import WebGLBackground from '../components/WebGLBackground';
+import { getWebDomain } from '../platform';
 
 export default function Dashboard() {
   const { currentUser, userRole } = useAuth();
@@ -403,13 +404,13 @@ export default function Dashboard() {
           let sentCount = 0;
           for (const email of recipientEmails) {
             const uSnap = await getDoc(doc(db, 'allowed_users', email.toLowerCase()));
-            if (uSnap.exists() && uSnap.data().role === 'student') {
-              const emailData = { place: s.place, time: formattedTime, date: formattedDate, link: window.location.origin };
-              const sent = await sendDynamicEmail(currentUser, email, email.split('@')[0], `Reminder: ${s.place}`, emailData, 'schedule_reminder');
-              if (sent) sentCount++;
-            }
+            const role = uSnap.exists() ? uSnap.data().role : 'student';
+            
+            const emailData = { place: s.place, time: formattedTime, date: formattedDate, link: getWebDomain() };
+            const sent = await sendDynamicEmail(currentUser, email, email.split('@')[0], `Reminder: ${s.place}`, emailData, 'schedule_reminder');
+            if (sent) sentCount++;
           }
-          showMessage(`Sent ${sentCount} reminders!`, 'success');
+          showMessage(`Sent ${sentCount} reminders! To: ${recipientEmails.join(', ')}`, 'success');
         } catch (err) {
           showMessage(err.message, 'error');
         }

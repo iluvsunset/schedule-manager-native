@@ -3,6 +3,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import AsyncButton from '../AsyncButton';
 import DatePicker from '../ui/DatePicker';
+import { getWebDomain } from '../../platform';
 function ModalWrapper({ isOpen, onClose, children, maxWidth = '500px' }) {
   const [render, setRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
@@ -259,7 +260,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         const formattedDate = dateTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const formattedTime = time || 'All day';
         for (const email of studentEmails) {
-          const emailData = { place, date: formattedDate, time: formattedTime, notes, link: window.location.origin };
+          const emailData = { place, date: formattedDate, time: formattedTime, notes, link: getWebDomain() };
           await sendDynamicEmail(currentUser, email, email.split('@')[0], `New Event: ${place}`, emailData, 'schedule_created');
         }
       }
@@ -522,7 +523,7 @@ export function ShareModal({ isOpen, onClose, schedule, currentUser }) {
   };
 
   const handleCopyLink = () => {
-    const link = `${window.location.origin}/share/${schedule.id}`;
+    const link = `${getWebDomain()}/share/${schedule.id}`;
     navigator.clipboard.writeText(link);
     showMessage('Sharing link copied to clipboard!', 'success');
   };
