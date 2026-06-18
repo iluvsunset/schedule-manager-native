@@ -1,15 +1,15 @@
 {
-  "version": "v0.1.0",
+  "version": "0.1.0",
   "notes": "First public release with native OS integration, sharing capabilities, and Vercel-backed updater.",
   "pub_date": "2026-06-18T10:00:00Z",
   "platforms": {
     "darwin-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSVzFIYWpSZEI0eHgvRkt1RDBWYk1Wckl2NHExRUcyek9UdU0wYnZxT29IRmhXS0tLVXo0djM4dXMxM3VJdjRiSVM5QjU1VFBWWnl1eVVLOURHUGVEUEVEQ2VoNnlQb2dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNzc3MTg2CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CnNiMkdTVDduNkhmdUZPWVNGamt6dXkzUk5nNERnOU1GSGxZZ2VMUEtSZVZDM0ExSURJZjdhWGJJRTJQdTA5VUMwenF5UXVTWXBPd3ZSZ0lPRlFwT0NBPT0K",
-      "url": "https://github.com/iluvsunset/schedule/releases/download/v0.1.0/Schedule_Manager_0.1.0_aarch64.app.tar.gz"
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.0/Schedule_Manager_0.1.0_aarch64.app.tar.gz"
     },
     "darwin-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSVzFIYWpSZEI0eHgvRkt1RDBWYk1Wckl2NHExRUcyek9UdU0wYnZxT29IRmhXS0tLVXo0djM4dXMxM3VJdjRiSVM5QjU1VFBWWnl1eVVLOURHUGVEUEVEQ2VoNnlQb2dVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxNzc3MTg2CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CnNiMkdTVDduNkhmdUZPWVNGamt6dXkzUk5nNERnOU1GSGxZZ2VMUEtSZVZDM0ExSURJZjdhWGJJRTJQdTA5VUMwenF5UXVTWXBPd3ZSZ0lPRlFwT0NBPT0K",
-      "url": "https://github.com/iluvsunset/schedule/releases/download/v0.1.0/Schedule_Manager_0.1.0_aarch64.app.tar.gz"
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.0/Schedule_Manager_0.1.0_aarch64.app.tar.gz"
     }
   }
 }
