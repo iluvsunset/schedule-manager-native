@@ -11,36 +11,16 @@ Built with Tauri v2, React, and Firebase, it provides a highly polished, premium
 - **Integration**: Works seamlessly with Google Calendar.
 - **Beautiful UI**: Modern glassmorphism design with Framer Motion animations.
 
-## Getting Started
+## Download & Installation
 
-### Prerequisites
-- Node.js (v18+)
-- Rust (for Tauri core)
-- Xcode Command Line Tools (for macOS compilation)
-
-### Installation
-1. Clone the repository:
+1. Go to the [Releases](https://github.com/iluvsunset/schedule/releases) page.
+2. Download the latest `Schedule_Manager_...app.tar.gz` file for macOS.
+3. Extract the downloaded file and drag **Schedule Manager** into your `/Applications` folder.
+4. **Bypass Apple Gatekeeper:** Since this application is not notarized by Apple, macOS will prevent it from opening initially. To fix this, open your Terminal and run the following command:
    ```bash
-   git clone https://github.com/iluvsunset/schedule.git
-   cd schedule
+   xattr -d com.apple.quarantine "/Applications/Schedule Manager.app"
    ```
-
-2. Install JavaScript dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Run the application in development mode:
-   ```bash
-   npm run tauri dev
-   ```
-
-### Building for Production
-To build the macOS release bundle:
-```bash
-npm run tauri build
-```
-This generates the `.app.tar.gz` and `.dmg` installers inside `src-tauri/target/release/bundle/macos/`.
+5. Open the app from your Applications folder and enjoy!
 
 ## Architecture
 - **Frontend**: React + Vite, Framer Motion for animations.

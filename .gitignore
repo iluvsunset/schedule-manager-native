@@ -15,3 +15,12 @@ mobile
 .factory/
 dist/
 scratch-logs.js
+
+# AI Agent Tracking Files
+TEST_*.md
+ORIGINAL_REQUEST.md
+PROJECT.md
+walkthrough.md
+implementation_plan.md
+task.md
+
