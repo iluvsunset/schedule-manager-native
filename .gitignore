@@ -24,3 +24,6 @@ walkthrough.md
 implementation_plan.md
 task.md
 
+# Tauri Signer Keys
+tauri-signer.key
+tauri-signer.key.pub

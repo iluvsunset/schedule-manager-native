@@ -48,7 +48,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM3NzhEMDQ1QTM3NkQ0NTYKUldSVzFIYWpSZEI0eHc5Tm1Qck1nNU5OVGtKamphQ28yY1FOcWE5TzBYMVhZQ04wa1ZxTGs4NmsK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyREE1Q0M4NDI0RkY2RjAKUldUdzlrOUN5RnphUW0yQy9SZ3hNbUlwOVV3dUhYUlRINkJWOEZlSlBhQnBVOU5hbWEwV1N4bXgK",
       "endpoints": [
         "https://schedule-iluvsunset.vercel.app/updater.json"
       ]
