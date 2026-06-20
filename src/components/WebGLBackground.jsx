@@ -91,84 +91,97 @@ export default function WebGLBackground() {
   const rafRef = useRef(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    let active = true;
+    let cleanup = null;
 
-    const gl = canvas.getContext('webgl', {
-      alpha: false,
-      antialias: false,
-      depth: false,
-      stencil: false,
-      powerPreference: 'low-power',
-      preserveDrawingBuffer: false,
-    });
+    const timer = setTimeout(() => {
+      if (!active) return;
+      
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    if (!gl) {
-      console.warn('WebGL not available, falling back to CSS background');
-      return;
-    }
+      const gl = canvas.getContext('webgl', {
+        alpha: false,
+        antialias: false,
+        depth: false,
+        stencil: false,
+        powerPreference: 'low-power',
+        preserveDrawingBuffer: false,
+      });
 
-    // Compile shaders & program
-    const vs = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-    const fs = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
-    if (!vs || !fs) return;
+      if (!gl) {
+        console.warn('WebGL not available, falling back to CSS background');
+        return;
+      }
 
-    const program = createProgram(gl, vs, fs);
-    if (!program) return;
+      // Compile shaders & program
+      const vs = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
+      const fs = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+      if (!vs || !fs) return;
 
-    // Full-screen quad
-    const posBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-      -1, -1,  1, -1,  -1, 1,
-      -1,  1,  1, -1,   1, 1,
-    ]), gl.STATIC_DRAW);
+      const program = createProgram(gl, vs, fs);
+      if (!program) return;
 
-    const aPosition = gl.getAttribLocation(program, 'a_position');
-    const uResolution = gl.getUniformLocation(program, 'u_resolution');
-    const uTime = gl.getUniformLocation(program, 'u_time');
+      // Full-screen quad
+      const posBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,  1, -1,  -1, 1,
+        -1,  1,  1, -1,   1, 1,
+      ]), gl.STATIC_DRAW);
 
-    // Resize handler
-    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const aPosition = gl.getAttribLocation(program, 'a_position');
+      const uResolution = gl.getUniformLocation(program, 'u_resolution');
+      const uTime = gl.getUniformLocation(program, 'u_time');
 
-    function resize() {
-      // On mobile use lower resolution for performance
-      const isMobile = window.innerWidth < 768;
-      dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
+      // Resize handler
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      canvas.width = canvas.clientWidth * dpr;
-      canvas.height = canvas.clientHeight * dpr;
-      gl.viewport(0, 0, canvas.width, canvas.height);
-    }
+      function resize() {
+        // On mobile use lower resolution for performance
+        const isMobile = window.innerWidth < 768;
+        dpr = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
 
-    resize();
-    window.addEventListener('resize', resize);
+        canvas.width = canvas.clientWidth * dpr;
+        canvas.height = canvas.clientHeight * dpr;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
 
-    // Render loop — uncapped for maximum smoothness
-    function render(now) {
+      resize();
+      window.addEventListener('resize', resize);
+
+      // Render loop — uncapped for maximum smoothness
+      function render(now) {
+        rafRef.current = requestAnimationFrame(render);
+
+        gl.useProgram(program);
+
+        gl.enableVertexAttribArray(aPosition);
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+        gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+        gl.uniform2f(uResolution, canvas.width, canvas.height);
+        gl.uniform1f(uTime, now * 0.001);
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
       rafRef.current = requestAnimationFrame(render);
 
-      gl.useProgram(program);
-
-      gl.enableVertexAttribArray(aPosition);
-      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-      gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
-
-      gl.uniform2f(uResolution, canvas.width, canvas.height);
-      gl.uniform1f(uTime, now * 0.001);
-
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }
-
-    rafRef.current = requestAnimationFrame(render);
+      cleanup = () => {
+        window.removeEventListener('resize', resize);
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+        gl.deleteProgram(program);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+        gl.deleteBuffer(posBuffer);
+      };
+    }, 450);
 
     return () => {
-      window.removeEventListener('resize', resize);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      gl.deleteProgram(program);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      gl.deleteBuffer(posBuffer);
+      active = false;
+      clearTimeout(timer);
+      if (cleanup) cleanup();
     };
   }, []);
 

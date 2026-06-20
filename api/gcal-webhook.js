@@ -2,6 +2,153 @@
 const { admin, getOAuthClient, sendEmail } = require('./_utils');
 const { google } = require('googleapis');
 
+function getWebhookEmailTemplate({ title, superTitle, body, btnText, btnColor, btnLink }) {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+      <style>
+        body {
+          font-family: 'Outfit', -apple-system, sans-serif;
+          margin: 0;
+          padding: 0;
+          background-color: #FDFBF7;
+          color: #2B2B2B;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 40px 20px;
+        }
+        .binder-rings {
+          display: flex;
+          justify-content: space-around;
+          padding: 0 40px;
+          margin-bottom: -10px;
+          position: relative;
+          z-index: 10;
+        }
+        .binder-rings span {
+          width: 12px;
+          height: 24px;
+          background: #E2E8F0;
+          border: 2px solid #2B2B2B;
+          border-radius: 6px;
+        }
+        .card {
+          background-color: #FFFFFF;
+          border-radius: 20px;
+          padding: 40px;
+          border: 2px solid #2B2B2B;
+          box-shadow: 6px 6px 0px #2B2B2B;
+          text-align: center;
+          position: relative;
+        }
+        .super-title {
+          font-family: 'Fredoka', sans-serif;
+          font-size: 14px;
+          font-weight: 700;
+          color: #718096;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          margin: 0 0 8px;
+        }
+        .class-title {
+          font-family: 'Fredoka', sans-serif;
+          font-size: 26px;
+          font-weight: 700;
+          color: #2B2B2B;
+          margin: 0 0 20px;
+          line-height: 1.3;
+        }
+        .text {
+          font-size: 16px;
+          line-height: 1.6;
+          color: #4A5568;
+          margin-bottom: 24px;
+        }
+        .info-box {
+          background-color: #FAF8F5;
+          border: 2px solid #2B2B2B;
+          border-radius: 16px;
+          box-shadow: 3px 3px 0px #2B2B2B;
+          padding: 24px;
+          margin-bottom: 28px;
+          text-align: left;
+        }
+        .info-row {
+          display: flex;
+          margin-bottom: 12px;
+          align-items: center;
+        }
+        .info-row:last-child {
+          margin-bottom: 0;
+        }
+        .label {
+          width: 90px;
+          color: #718096;
+          font-family: 'Fredoka', sans-serif;
+          font-size: 12px;
+          text-transform: uppercase;
+          font-weight: 700;
+        }
+        .value {
+          color: #2B2B2B;
+          font-weight: 600;
+          font-size: 15px;
+        }
+        .btn {
+          display: inline-block;
+          background-color: \${btnColor || '#FFC01E'};
+          color: #2B2B2B !important;
+          padding: 14px 36px;
+          border-radius: 12px;
+          text-decoration: none;
+          font-family: 'Fredoka', sans-serif;
+          font-weight: 700;
+          font-size: 16px;
+          border: 2px solid #2B2B2B;
+          box-shadow: 4px 4px 0px #2B2B2B;
+          transition: all 0.1s ease;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 40px;
+          font-size: 12px;
+          color: #A0AEC0;
+          font-weight: 500;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="binder-rings">
+          <span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="card">
+          <div class="super-title">\${superTitle}</div>
+          <h2 class="class-title">\${title}</h2>
+          
+          <div style="text-align: left;">
+            \${body}
+          </div>
+
+          <div style="margin-top: 32px; text-align: center;">
+            <a href="\${btnLink}" class="btn">\${btnText}</a>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>&copy; 2026 Chronos School Manager</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
 module.exports = async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -164,16 +311,18 @@ module.exports = async function handler(req, res) {
                 }
               }
               if (studentEmails.length > 0) {
-                const html = `
-                  <div style="font-family: sans-serif; padding: 20px;">
-                    <h2 style="color: #EF4444;">Class Event Cancelled!</h2>
-                    <p><strong>${data.place || 'An event'}</strong> has been cancelled.</p>
-                    <br>
-                    <a href="https://schedule-iluvsunset.vercel.app/" style="padding: 10px 20px; background: #EF4444; color: white; text-decoration: none; border-radius: 5px;">View Schedule</a>
-                  </div>
-                `;
+                const html = getWebhookEmailTemplate({
+                  superTitle: "SCHEDULE UPDATE",
+                  title: "Class Event Cancelled!",
+                  body: `
+                    <p class="text"><strong>${data.place || 'An event'}</strong> has been cancelled.</p>
+                  `,
+                  btnText: "View Schedule",
+                  btnColor: "#EF4444",
+                  btnLink: "https://schedule-iluvsunset.vercel.app/"
+                });
                 for (const email of studentEmails) {
-                  const subject = `Cancelled Event (GCal Auto): ${data.place || 'Class Event'}`;
+                  const subject = `Cancelled Event: ${data.place || 'Class Event'}`;
                   emailPromises.push(
                     sendEmail(db, email, subject, html)
                       .then(() => console.log(`[Email] Sent cancellation notice to ${email}`))
@@ -228,32 +377,44 @@ module.exports = async function handler(req, res) {
               }
             }
             if (studentEmails.length > 0) {
-              const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+              const tz = event.start.timeZone || eventsRes.data.timeZone || 'Asia/Ho_Chi_Minh';
+              const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz });
               
               // format time helper
               const formatTime = (d) => {
                 return d.toLocaleTimeString('en-US', {
                   hour: 'numeric',
                   minute: '2-digit',
-                  hour12: true
+                  hour12: true,
+                  timeZone: tz
                 });
               };
               
               const timeStr = event.start.dateTime ? formatTime(start) : 'All Day';
-              const oldTimeStr = oldStart ? (oldStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + (event.start.dateTime ? formatTime(oldStart) : 'All Day')) : 'N/A';
+              const oldTimeStr = oldStart ? (oldStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: tz }) + ' ' + (event.start.dateTime ? formatTime(oldStart) : 'All Day')) : 'N/A';
 
-              const html = `
-                <div style="font-family: sans-serif; padding: 20px;">
-                  <h2 style="color: #3B82F6;">Class Event Rescheduled!</h2>
-                  <p><strong>${summary}</strong> has been rescheduled.</p>
-                  <p><strong>Previous Time:</strong> <span style="text-decoration: line-through; color: #EF4444;">${oldTimeStr}</span></p>
-                  <p><strong>New Time:</strong> <span style="color: #10B981; font-weight: bold;">${formattedDate} at ${timeStr}</span></p>
-                  <br>
-                  <a href="https://schedule-iluvsunset.vercel.app/" style="padding: 10px 20px; background: #3B82F6; color: white; text-decoration: none; border-radius: 5px;">View Schedule</a>
-                </div>
-              `;
+              const html = getWebhookEmailTemplate({
+                superTitle: "SCHEDULE UPDATE",
+                title: "Class Event Rescheduled!",
+                body: `
+                  <p class="text"><strong>${summary}</strong> has been rescheduled.</p>
+                  <div class="info-box">
+                    <div class="info-row">
+                      <span class="label">Prev Time</span>
+                      <span class="value" style="text-decoration: line-through; color: #EF4444;">${oldTimeStr}</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="label">New Time</span>
+                      <span class="value" style="color: #10B981; font-weight: bold;">${formattedDate} at ${timeStr}</span>
+                    </div>
+                  </div>
+                `,
+                btnText: "View Schedule",
+                btnColor: "#3B82F6",
+                btnLink: "https://schedule-iluvsunset.vercel.app/"
+              });
               for (const email of studentEmails) {
-                const subject = `Rescheduled Event (GCal Auto): ${summary}`;
+                const subject = `Rescheduled Event: ${summary}`;
                 emailPromises.push(
                   sendEmail(db, email, subject, html)
                     .then(() => console.log(`[Email] Sent reschedule notice to ${email}`))
@@ -301,32 +462,44 @@ module.exports = async function handler(req, res) {
           }
 
           if (studentEmails.length > 0) {
-            const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            const tz = event.start.timeZone || eventsRes.data.timeZone || 'Asia/Ho_Chi_Minh';
+            const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: tz });
             
             // format time helper
             const formatTime = (d) => {
               return d.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
-                hour12: true
+                hour12: true,
+                timeZone: tz
               });
             };
             
             const timeStr = event.start.dateTime ? formatTime(start) : 'All Day';
             
-            const html = `
-              <div style="font-family: sans-serif; padding: 20px;">
-                <h2>New Class Event Added!</h2>
-                <p><strong>${scheduleData.place}</strong> has been scheduled.</p>
-                <p><strong>Date:</strong> ${formattedDate}</p>
-                <p><strong>Time:</strong> ${timeStr}</p>
-                <br>
-                <a href="https://schedule-iluvsunset.vercel.app/" style="padding: 10px 20px; background: #FFC01E; color: black; text-decoration: none; border-radius: 5px;">View Schedule</a>
-              </div>
-            `;
+            const html = getWebhookEmailTemplate({
+              superTitle: "CALENDAR SYNC",
+              title: "New Class Event Added!",
+              body: `
+                <p class="text"><strong>${scheduleData.place}</strong> has been scheduled.</p>
+                <div class="info-box">
+                  <div class="info-row">
+                    <span class="label">Date</span>
+                    <span class="value">${formattedDate}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="label">Time</span>
+                    <span class="value">${timeStr}</span>
+                  </div>
+                </div>
+              `,
+              btnText: "View Schedule",
+              btnColor: "#FFC01E",
+              btnLink: "https://schedule-iluvsunset.vercel.app/"
+            });
 
             for (const email of studentEmails) {
-              const subject = `New Event (GCal Auto): ${scheduleData.place}`;
+              const subject = `New Event: ${scheduleData.place}`;
               emailPromises.push(
                 sendEmail(db, email, subject, html)
                   .then(() => console.log(`[Email] Sent creation notice to ${email}`))

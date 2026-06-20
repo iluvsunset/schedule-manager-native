@@ -71,8 +71,9 @@ function ModalWrapper({ isOpen, onClose, children, maxWidth = '500px' }) {
 import { doc, getDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { showMessage, sendDynamicEmail, formatTime, formatDate } from '../../utils/helpers';
+import { useAuth } from '../../contexts/AuthContext';
 
-import { AlertTriangle, Calendar, Clock, MapPin, FileText, Link, Zap, CheckCircle, Globe, Lock, X } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, MapPin, FileText, Link, Zap, CheckCircle, Globe, Lock, X, Play, Edit3, Share2, Trash2, Send } from 'lucide-react';
 
 // ── CONFIRM MODAL ──────────────────────────────────────────────
 export function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
@@ -93,7 +94,19 @@ export function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
 }
 
 // ── DETAIL MODAL ──────────────────────────────────────────────
-export function EventDetailModal({ isOpen, onClose, schedule }) {
+export function EventDetailModal({ 
+  isOpen, 
+  onClose, 
+  schedule, 
+  onStart, 
+  onComplete, 
+  onCancel, 
+  onDelete, 
+  onEdit, 
+  onShare, 
+  onSendReminder 
+}) {
+  const { canEditSchedule, canDeleteSchedule, userRole } = useAuth();
   if (!schedule) return null;
   const date = schedule.date ? (schedule.date.toDate ? schedule.date.toDate() : new Date(schedule.date)) : null;
   const dueDisplay = schedule.assignmentDue ? new Date(schedule.assignmentDue).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
@@ -104,7 +117,7 @@ export function EventDetailModal({ isOpen, onClose, schedule }) {
           <h3>{schedule.place}</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="modal-body">
+        <div className="modal-body" style={{ paddingBottom: '16px' }}>
           <div className="detail-group">
             <div className="detail-row">
               <div className="detail-icon"><Calendar size={16} /></div>
@@ -183,6 +196,242 @@ export function EventDetailModal({ isOpen, onClose, schedule }) {
               </div>
             </div>
           )}
+        </div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 24px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          borderTop: '1px solid var(--border-default)',
+          borderBottomLeftRadius: 'var(--radius-lg)',
+          borderBottomRightRadius: 'var(--radius-lg)',
+          gap: '8px'
+        }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {canEditSchedule && canEditSchedule(schedule) && schedule.status !== 'completed' && schedule.status !== 'ongoing' && onStart && (
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  onStart(schedule.id);
+                  onClose();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                  borderColor: '#10B981',
+                  color: '#FFFFFF'
+                }}
+              >
+                <Play size={14} fill="#FFFFFF" />
+                Start Event
+              </button>
+            )}
+
+            {canEditSchedule && canEditSchedule(schedule) && schedule.status === 'ongoing' && onComplete && (
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  onComplete(schedule.id);
+                  onClose();
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                  borderColor: '#10B981',
+                  color: '#FFFFFF'
+                }}
+              >
+                <CheckCircle size={14} fill="#FFFFFF" />
+                Complete Event
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {userRole !== 'student' && onSendReminder && (
+              <button
+                onClick={() => {
+                  onSendReminder(schedule.id);
+                }}
+                title="Send Email Reminder"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#AEAEB2',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.3)';
+                  e.currentTarget.style.color = '#3B82F6';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#AEAEB2';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <Send size={14} />
+              </button>
+            )}
+
+            {canEditSchedule && canEditSchedule(schedule) && onShare && (
+              <button
+                onClick={() => {
+                  onShare(schedule);
+                }}
+                title="Share Event"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#AEAEB2',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#AEAEB2';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <Share2 size={14} />
+              </button>
+            )}
+
+            {canEditSchedule && canEditSchedule(schedule) && onEdit && (
+              <button
+                onClick={() => {
+                  onEdit(schedule);
+                }}
+                title="Edit Event"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  color: '#AEAEB2',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.color = '#FFFFFF';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#AEAEB2';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <Edit3 size={14} />
+              </button>
+            )}
+
+            {canEditSchedule && canEditSchedule(schedule) && schedule.status !== 'cancelled' && schedule.status !== 'completed' && onCancel && (
+              <button
+                onClick={() => {
+                  onCancel(schedule.id);
+                  onClose();
+                }}
+                title="Cancel Event"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                  color: '#EF4444',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <X size={14} strokeWidth={2.5} />
+              </button>
+            )}
+
+            {canDeleteSchedule && canDeleteSchedule(schedule) && onDelete && (
+              <button
+                onClick={() => {
+                  onDelete(schedule.id);
+                  onClose();
+                }}
+                title="Delete Event"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.06)',
+                  border: '1px solid rgba(239, 68, 68, 0.15)',
+                  color: '#EF4444',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.15)';
+                  e.currentTarget.style.transform = 'none';
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+          </div>
         </div>
     </ModalWrapper>
   );

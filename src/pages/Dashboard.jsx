@@ -5,28 +5,16 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: { 
     opacity: 1, 
-    transition: { staggerChildren: 0.1 } 
+    transition: { ease: 'easeOut', duration: 0.25 } 
   },
   exit: { 
     opacity: 0, 
-    scale: 0.96, 
-    transition: { ease: [0.16, 1, 0.3, 1], duration: 0.2 } 
+    transition: { ease: 'easeIn', duration: 0.15 } 
   }
 };
-
-const itemVariants = {
-  hidden: { y: 24, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { ease: [0.16, 1, 0.3, 1], duration: 0.4 } 
-  }
-};
-import { collection, query, where, or, onSnapshot, getDocs, getDoc, doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, or, onSnapshot, getDocs, getDoc, doc, updateDoc, deleteDoc, Timestamp, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import useMobile from '../utils/useMobile';
-import MobileDashboard from './MobileDashboard';
 import Topbar from '../components/layout/Topbar';
 import Sidebar from '../components/layout/Sidebar';
 import StatsRow from '../components/dashboard/StatsRow';
@@ -49,7 +37,6 @@ import { getWebDomain } from '../platform';
 
 export default function Dashboard() {
   const { currentUser, userRole } = useAuth();
-  const isMobile = useMobile();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -319,6 +306,36 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [currentUser, userRole, schedules]);
 
+  // 5. Broadcast Changelog Announcement for Super Admin
+  useEffect(() => {
+    if (!currentUser) return;
+    const email = currentUser.email?.toLowerCase();
+    if (email !== 'bao.h0146824@gmail.com' && email !== 'sunsetmyfav@gmail.com') return;
+    
+    const hasBroadcasted = localStorage.getItem('changelog_broadcast_done');
+    if (hasBroadcasted) return;
+
+    const broadcastChangelog = async () => {
+      try {
+        const message = `🚀 Chronos Upgrade Released!
+• Unified Desktop & Web Experience: Deprecated the mobile dashboard for a single, fully responsive dashboard.
+• Calendar Quick Actions: Clicking a calendar day now opens a compact card listing events with immediate action buttons (Start, Complete, Cancel, Delete, Details).
+• Detail Modal Toolbar: Manage events directly from the Detail Modal with a beautiful bottom action toolbar.`;
+
+        await setDoc(doc(db, 'system_settings', 'announcements'), {
+          message: message,
+          timestamp: Timestamp.now()
+        });
+        localStorage.setItem('changelog_broadcast_done', 'true');
+        console.log("Changelog announcement broadcasted successfully via client!");
+      } catch (err) {
+        console.error("Failed to broadcast changelog from client:", err);
+      }
+    };
+
+    broadcastChangelog();
+  }, [currentUser]);
+
   const handleSelectClass = (id, closeOverlay = true) => {
     setSelectedClassId(id);
     localStorage.setItem('schedule_context', id);
@@ -457,26 +474,6 @@ export default function Dashboard() {
     );
   }
 
-  /* ── Mobile Layout ── */
-  if (isMobile) {
-    return (
-      <MobileDashboard
-        schedules={filteredSchedules}
-        allSchedules={schedules}
-        loading={loading}
-        classes={classes}
-        selectedClassId={selectedClassId}
-        nextEvent={nextEvent}
-        tasks={tasks}
-        feedback={feedback}
-        onStart={handleStartSchedule}
-        onComplete={handleCompleteSchedule}
-        onDelete={handleDeleteSchedule}
-        onCancel={handleCancelSchedule}
-      />
-    );
-  }
-
   /* ── Desktop Layout ── */
   return (
     <motion.div 
@@ -491,7 +488,7 @@ export default function Dashboard() {
       <WebGLBackground />
 
       <div className="dashboard-container">
-        <motion.div variants={itemVariants}>
+        <div>
           <Topbar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -499,10 +496,10 @@ export default function Dashboard() {
             selectedClassId={selectedClassId}
             onSelectClass={handleSelectClass}
           />
-        </motion.div>
+        </div>
 
         <div className="dashboard-body">
-          <motion.div variants={itemVariants} style={{ height: '100%', display: 'flex' }}>
+          <div style={{ height: '100%', display: 'flex' }}>
             <Sidebar
               activeTab={activeTab}
               setActiveTab={setActiveTab}
@@ -511,9 +508,9 @@ export default function Dashboard() {
               feedback={feedback}
               classes={classes}
             />
-          </motion.div>
+          </div>
 
-          <motion.main className="main-content" variants={itemVariants}>
+          <main className="main-content">
             {loading ? (
               
               <div className="skeleton-container" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -546,6 +543,13 @@ export default function Dashboard() {
                   <CalendarView
                     schedules={filteredSchedules}
                     onSelectEvent={setDetailEvent}
+                    onStart={handleStartSchedule}
+                    onComplete={handleCompleteSchedule}
+                    onDelete={handleDeleteSchedule}
+                    onCancel={handleCancelSchedule}
+                    onEdit={setEditEvent}
+                    onShare={setShareEvent}
+                    onSendReminder={handleSendReminder}
                   />
                 )}
 
@@ -558,7 +562,7 @@ export default function Dashboard() {
                 )}
               </>
             )}
-          </motion.main>
+          </main>
         </div>
       </div>
 
@@ -633,20 +637,67 @@ export default function Dashboard() {
       )}
 
       {/* Dynamic Slide-down Announcement overlay */}
-      {isBroadcastActive && broadcast && (
-        <div id="broadcastPopup" className="broadcast-popup active">
-          <div className="broadcast-icon"><Megaphone size={24} /></div>
-          <div className="broadcast-title">System Announcement</div>
-          <div id="broadcastMessage" className="broadcast-message">{broadcast.message}</div>
-          <button className="broadcast-close" onClick={handleDismissBroadcast}>Dismiss</button>
-        </div>
-      )}
+      {isBroadcastActive && broadcast && (() => {
+        const lines = (broadcast.message || '').split('\n');
+        const header = lines[0] || '';
+        const bodyLines = lines.slice(1).map(l => l.replace(/^•\s*/, ''));
+
+        return (
+          <motion.div
+            id="broadcastPopup"
+            className="broadcast-popup"
+            initial={{ y: -150, opacity: 0, x: '-50%' }}
+            animate={{ y: 0, opacity: 1, x: '-50%' }}
+            exit={{ y: -150, opacity: 0, x: '-50%' }}
+            transition={{ type: 'spring', damping: 26, stiffness: 150 }}
+          >
+            <div className="broadcast-glow"></div>
+            <div className="broadcast-icon-wrapper">
+              <Megaphone className="broadcast-megaphone" size={24} />
+            </div>
+            <div className="broadcast-header-badge">{header}</div>
+            <div className="broadcast-title">System Announcement</div>
+            
+            <div className="broadcast-list">
+              {bodyLines.map((line, idx) => {
+                const parts = line.split(':');
+                const title = parts[0] || '';
+                const desc = parts.slice(1).join(':') || '';
+                return (
+                  <div key={idx} className="broadcast-item">
+                    <span className="broadcast-bullet">✦</span>
+                    <div className="broadcast-item-content">
+                      {title && <span className="broadcast-item-title">{title}</span>}
+                      {desc && <span className="broadcast-item-desc">{desc.trim()}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <button className="broadcast-close" onClick={handleDismissBroadcast}>Dismiss</button>
+          </motion.div>
+        );
+      })()}
 
       {/* EVENT MODALS WIRE */}
       <EventDetailModal
         isOpen={!!detailEvent}
         onClose={() => setDetailEvent(null)}
         schedule={detailEvent}
+        onStart={handleStartSchedule}
+        onComplete={handleCompleteSchedule}
+        onCancel={handleCancelSchedule}
+        onDelete={handleDeleteSchedule}
+        onEdit={(s) => {
+          setDetailEvent(null);
+          setEditEvent(s);
+        }}
+        onShare={(s) => {
+          setDetailEvent(null);
+          setShareEvent(s);
+        }}
+        onSendReminder={handleSendReminder}
       />
 
       <CreateEventModal

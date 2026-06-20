@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { formatTime } from '../../utils/helpers';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../contexts/AuthContext';
+import { Eye, Play, Check, X, Trash2, Clock, Send, Share2, Edit3 } from 'lucide-react';
 
-export default function CalendarView({ schedules, onSelectEvent }) {
+export default function CalendarView({ schedules, onSelectEvent, onStart, onComplete, onDelete, onCancel, onEdit, onShare, onSendReminder }) {
+  const { canEditSchedule, canDeleteSchedule, userRole } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState(0);
+  const [selectedDayEvents, setSelectedDayEvents] = useState(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -75,6 +79,21 @@ export default function CalendarView({ schedules, onSelectEvent }) {
   for (let i = 0; i < cells.length; i += 7) {
     weeks.push(cells.slice(i, i + 7));
   }
+
+  const handleDayClick = (cell) => {
+    if (cell.events.length >= 1) {
+      const dateLabel = new Date(year, month, cell.day).toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric'
+      });
+      setSelectedDayEvents({
+        day: cell.day,
+        dateLabel,
+        events: cell.events
+      });
+    }
+  };
 
   return (
     <div className="content-panel">
@@ -149,7 +168,7 @@ export default function CalendarView({ schedules, onSelectEvent }) {
                       <motion.div 
                         key={cell.key} 
                         className={`day-cell ${cell.isToday ? 'today' : ''}`}
-                        onClick={() => cell.events.length > 0 && onSelectEvent(cell.events[0])}
+                        onClick={() => cell.events.length > 0 && handleDayClick(cell)}
                         whileTap={{ scale: 0.92 }}
                       >
                         {cell.isToday ? (
@@ -177,6 +196,14 @@ export default function CalendarView({ schedules, onSelectEvent }) {
                                 whileHover={{ y: -1 }}
                                 whileTap={{ scale: 0.96 }}
                                 style={{ textDecoration: 'none' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (cell.events.length > 1) {
+                                    handleDayClick(cell);
+                                  } else {
+                                    onSelectEvent(ev);
+                                  }
+                                }}
                               >
                                 {ev.source === 'google_calendar' && <span style={{ marginRight: '3px' }}>📅</span>}
                                 {ev.place}
@@ -193,6 +220,465 @@ export default function CalendarView({ schedules, onSelectEvent }) {
           </AnimatePresence>
         </div>
       </div>
+
+      <AnimatePresence>
+        {selectedDayEvents && (
+          <div 
+            className="modal-backdrop"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+            }}
+            onClick={() => setSelectedDayEvents(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                background: 'rgba(20, 20, 25, 0.92)',
+                backdropFilter: 'blur(24px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '20px',
+                width: '90%',
+                maxWidth: '440px',
+                boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+                padding: '24px',
+                color: '#F2F2F7',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.3px' }}>Events on this Day</h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#A2A2A7', fontWeight: 500 }}>{selectedDayEvents.dateLabel}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedDayEvents(null)}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: 'none',
+                    borderRadius: '50%',
+                    color: '#D1D1D6',
+                    cursor: 'pointer',
+                    padding: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)';
+                    e.currentTarget.style.color = '#FFFFFF';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                    e.currentTarget.style.color = '#D1D1D6';
+                  }}
+                >
+                  <X size={16} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
+                {selectedDayEvents.events.map((ev) => {
+                  const isGcal = ev.source === 'google_calendar';
+                  const isCompleted = ev.status === 'completed';
+                  const isOngoing = ev.status === 'ongoing';
+                  const isCancelled = ev.status === 'cancelled';
+                  
+                  let dotColor = '#FFC01E'; // upcoming
+                  if (isCompleted) {
+                    dotColor = '#10B981';
+                  } else if (isOngoing) {
+                    dotColor = '#3B82F6';
+                  } else if (isCancelled) {
+                    dotColor = '#EF4444';
+                  } else if (isGcal) {
+                    dotColor = '#007AFF';
+                  }
+
+                  return (
+                    <div
+                      key={ev.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        padding: '14px 16px',
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid rgba(255, 255, 255, 0.07)',
+                        borderRadius: '14px',
+                        gap: '12px',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.07)';
+                      }}
+                    >
+                      <div
+                        onClick={() => {
+                          onSelectEvent(ev);
+                          setSelectedDayEvents(null);
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          flex: 1,
+                          minWidth: 0,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: dotColor,
+                            flexShrink: 0
+                          }} />
+                          <span style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            color: isCancelled ? '#8E8E93' : '#FFFFFF',
+                            textDecoration: isCancelled ? 'line-through' : 'none',
+                            fontWeight: 600,
+                            fontSize: '14px'
+                          }}>{ev.place}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#8E8E93' }}>
+                          {ev.date && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Clock size={12} />
+                              {formatTime(ev.date?.toDate ? ev.date.toDate() : new Date(ev.date))}
+                            </span>
+                          )}
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            background: isGcal ? 'rgba(59, 130, 246, 0.12)' : 'rgba(255, 255, 255, 0.06)',
+                            color: isGcal ? '#3B82F6' : '#AEAEB2',
+                            fontSize: '10px',
+                            fontWeight: 600
+                          }}>
+                            {isGcal ? 'GCal' : 'Class'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+                        {/* View Details */}
+                        <button
+                          onClick={() => {
+                            onSelectEvent(ev);
+                            setSelectedDayEvents(null);
+                          }}
+                          title="View Details"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            color: '#AEAEB2',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                            e.currentTarget.style.color = '#FFFFFF';
+                            e.currentTarget.style.transform = 'scale(1.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            e.currentTarget.style.color = '#AEAEB2';
+                            e.currentTarget.style.transform = 'none';
+                          }}
+                        >
+                          <Eye size={13} />
+                        </button>
+
+                        {/* Start (Play) */}
+                        {canEditSchedule && canEditSchedule(ev) && ev.status !== 'completed' && ev.status !== 'ongoing' && onStart && (
+                          <button
+                            onClick={() => {
+                              onStart(ev.id);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Start Event"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.2)',
+                              color: '#10B981',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.25)';
+                              e.currentTarget.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+                              e.currentTarget.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <Play size={12} fill="#10B981" />
+                          </button>
+                        )}
+
+                        {/* Complete (Check) */}
+                        {canEditSchedule && canEditSchedule(ev) && ev.status === 'ongoing' && onComplete && (
+                          <button
+                            onClick={() => {
+                              onComplete(ev.id);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Complete Event"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid rgba(16, 185, 129, 0.2)',
+                              color: '#10B981',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.25)';
+                              e.currentTarget.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)';
+                              e.currentTarget.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <Check size={12} strokeWidth={3} />
+                          </button>
+                        )}
+
+                        {/* Cancel (X) */}
+                        {canEditSchedule && canEditSchedule(ev) && ev.status !== 'cancelled' && ev.status !== 'completed' && onCancel && (
+                          <button
+                            onClick={() => {
+                              onCancel(ev.id);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Cancel Event"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              color: '#EF4444',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                              e.currentTarget.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                              e.currentTarget.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <X size={12} strokeWidth={2.5} />
+                          </button>
+                        )}
+
+                        {/* Send Email Reminder */}
+                        {userRole !== 'student' && onSendReminder && (
+                          <button
+                            onClick={() => {
+                              onSendReminder(ev.id);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Send Email Reminder"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(59, 130, 246, 0.1)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                              color: '#3B82F6',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(59, 130, 246, 0.25)';
+                              e.currentTarget.style.border = '1px solid rgba(59, 130, 246, 0.4)';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                              e.currentTarget.style.border = '1px solid rgba(59, 130, 246, 0.2)';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <Send size={11} />
+                          </button>
+                        )}
+
+                        {/* Share */}
+                        {canEditSchedule && canEditSchedule(ev) && onShare && (
+                          <button
+                            onClick={() => {
+                              onShare(ev);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Share Event"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              color: '#AEAEB2',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                              e.currentTarget.style.color = '#FFFFFF';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                              e.currentTarget.style.color = '#AEAEB2';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <Share2 size={12} />
+                          </button>
+                        )}
+
+                        {/* Edit */}
+                        {canEditSchedule && canEditSchedule(ev) && onEdit && (
+                          <button
+                            onClick={() => {
+                              onEdit(ev);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Edit Event"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              color: '#AEAEB2',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                              e.currentTarget.style.color = '#FFFFFF';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                              e.currentTarget.style.color = '#AEAEB2';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <Edit3 size={12} />
+                          </button>
+                        )}
+
+                        {/* Delete (Trash) */}
+                        {canDeleteSchedule && canDeleteSchedule(ev) && onDelete && (
+                          <button
+                            onClick={() => {
+                              onDelete(ev.id);
+                              setSelectedDayEvents(null);
+                            }}
+                            title="Delete Event"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              color: '#EF4444',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                              e.currentTarget.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+                              e.currentTarget.style.transform = 'scale(1.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                              e.currentTarget.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+                              e.currentTarget.style.transform = 'none';
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
