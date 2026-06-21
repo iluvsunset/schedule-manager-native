@@ -4754,25 +4754,26 @@ input[type="checkbox"]:checked::after {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  padding: 12px 16px;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 150ms var(--ease-apple-out);
   color: var(--text-primary);
   font-family: var(--font-family);
   font-size: 15px;
+  box-sizing: border-box;
 }
 
 .datepicker-input:hover {
-  border-color: rgba(255,255,255,0.2);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .datepicker-input.active {
-  border-color: var(--primary-color);
-  background: rgba(10, 132, 255, 0.05);
-  box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.1);
+  border-color: #007AFF;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.35);
 }
 
 .dp-icon {
@@ -4780,7 +4781,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .datepicker-input.active .dp-icon {
-  color: var(--primary-color);
+  color: #007AFF;
 }
 
 .dp-placeholder {
