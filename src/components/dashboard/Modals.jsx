@@ -676,7 +676,7 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
                   <input type="text" placeholder="Resource link" value={assignmentLink} onChange={e => setAssignmentLink(e.target.value)} />
                 </div>
                 <div className="form-group" style={{ width: '130px' }}>
-                  <DatePicker title="Due date" value={assignmentDue} onChange={setAssignmentDue} />
+                  <DatePicker title="Due date" value={assignmentDue} onChange={setAssignmentDue} align="right" />
                 </div>
               </div>
               <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>

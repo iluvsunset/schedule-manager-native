@@ -227,7 +227,7 @@ button, a, input, select, textarea, [role="button"], .action-btn, .nav-btn, .m-t
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 .modal-content.open {
   opacity: 1;
@@ -2024,7 +2024,7 @@ select {
   max-width: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .modal-header {
@@ -4800,6 +4800,11 @@ input[type="checkbox"]:checked::after {
   padding: 16px;
   z-index: 100;
   box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+.datepicker-popover.align-right {
+  left: auto;
+  right: 0;
 }
 
 .cal-header {

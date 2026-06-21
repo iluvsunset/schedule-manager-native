@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function DatePicker({ value, onChange, required, title }) {
+export default function DatePicker({ value, onChange, required, title, align = 'left' }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -92,7 +92,7 @@ export default function DatePicker({ value, onChange, required, title }) {
       <AnimatePresence>
         {isOpen && (
           <motion.div 
-            className="datepicker-popover"
+            className={`datepicker-popover ${align === 'right' ? 'align-right' : ''}`}
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
