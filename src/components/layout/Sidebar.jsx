@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatTime } from '../../utils/helpers';
 import { LayoutDashboard, Calendar, Users, CalendarDays, Shield, ClipboardList, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { openExternalUrl } from '../../platform';
 
 
 const sidebarVariants = {
@@ -157,7 +158,7 @@ export default function Sidebar({
               <button 
                 className="btn btn-primary btn-full" 
                 style={{ marginTop: '16px' }}
-                onClick={() => window.open(linkUrl, '_blank')}
+                onClick={() => openExternalUrl(linkUrl)}
               >
                 Join Link
               </button>

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getRelativeTime, formatTime } from '../../utils/helpers';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarDays, Plus, ExternalLink, Share2, Play, Check, Send, Edit3, Trash2 } from 'lucide-react';
+import { openExternalUrl } from '../../platform';
 
 export default function ScheduleList({ 
   schedules, 
@@ -156,7 +157,7 @@ export default function ScheduleList({
 
                 <div className="schedule-actions-wrapper" onClick={(e) => e.stopPropagation()}>
                   {linkUrl && (
-                    <button className="action-btn" onClick={() => window.open(linkUrl, '_blank')} title="Join Event" style={{ color: 'var(--brand-primary)' }}>
+                    <button className="action-btn" onClick={() => openExternalUrl(linkUrl)} title="Join Event" style={{ color: 'var(--brand-primary)' }}>
                       <ExternalLink size={15} />
                     </button>
                   )}
