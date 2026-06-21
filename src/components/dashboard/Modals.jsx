@@ -675,8 +675,8 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
                 <div className="form-group" style={{ flex: 1 }}>
                   <input type="text" placeholder="Resource link" value={assignmentLink} onChange={e => setAssignmentLink(e.target.value)} />
                 </div>
-                <div className="form-group" style={{ width: '130px' }}>
-                  <DatePicker title="Due date" value={assignmentDue} onChange={setAssignmentDue} align="right" />
+                <div className="form-group" style={{ width: assignmentDue ? '130px' : '40px', transition: 'width 200ms ease', flexShrink: 0 }}>
+                  <DatePicker title="Due date" value={assignmentDue} onChange={setAssignmentDue} align="right" placeholder="" />
                 </div>
               </div>
               <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>

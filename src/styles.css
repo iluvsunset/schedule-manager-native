@@ -4766,6 +4766,13 @@ input[type="checkbox"]:checked::after {
   box-sizing: border-box;
 }
 
+.datepicker-input.icon-only {
+  justify-content: center;
+  width: 40px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 .datepicker-input:hover {
   border-color: rgba(255, 255, 255, 0.2);
 }

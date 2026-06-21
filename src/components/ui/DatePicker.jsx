@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function DatePicker({ value, onChange, required, title, align = 'left' }) {
+export default function DatePicker({ value, onChange, required, title, align = 'left', placeholder = 'Select date...' }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -79,14 +79,16 @@ export default function DatePicker({ value, onChange, required, title, align = '
   return (
     <div className="custom-datepicker" ref={containerRef}>
       <div 
-        className={`datepicker-input ${isOpen ? 'active' : ''}`} 
+        className={`datepicker-input ${isOpen ? 'active' : ''} ${(!displayValue && !placeholder) ? 'icon-only' : ''}`} 
         onClick={() => setIsOpen(!isOpen)}
-        title={title}
+        title={title || placeholder}
       >
         <Calendar size={18} className="dp-icon" />
-        <span className={displayValue ? 'dp-value' : 'dp-placeholder'}>
-          {displayValue || 'Select date...'}
-        </span>
+        {(displayValue || placeholder) && (
+          <span className={displayValue ? 'dp-value' : 'dp-placeholder'}>
+            {displayValue || placeholder}
+          </span>
+        )}
       </div>
 
       <AnimatePresence>
