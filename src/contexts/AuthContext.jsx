@@ -71,6 +71,8 @@ const STATIC_PERMISSIONS = {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [userUsername, setUserUsername] = useState(null);
+  const [userDisplayName, setUserDisplayName] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dynamicOverrides, setDynamicOverrides] = useState({});
   const [isGcalConnected, setIsGcalConnected] = useState(false);
@@ -114,6 +116,8 @@ export function AuthProvider({ children }) {
             if (myCallbackId !== authCallbackId.current) return;
 
             let role = null;
+            let username = null;
+            let displayName = null;
             if (res.ok) {
               const docData = await res.json();
               // Firestore REST API returns fields in { fieldName: { stringValue: "..." } } format
@@ -121,6 +125,8 @@ export function AuthProvider({ children }) {
               if (roleField) {
                 role = roleField.toLowerCase().trim();
               }
+              username = docData.fields?.username?.stringValue || null;
+              displayName = docData.fields?.displayName?.stringValue || null;
             }
             
             if (user.email.toLowerCase() === 'bao.h0146824@gmail.com' || user.email.toLowerCase() === 'sunsetmyfav@gmail.com') {
@@ -130,10 +136,14 @@ export function AuthProvider({ children }) {
             if (role) {
               setCurrentUser(user);
               setUserRole(role);
+              setUserUsername(username);
+              setUserDisplayName(displayName);
             } else {
               await signOut(auth);
               setCurrentUser(null);
               setUserRole(null);
+              setUserUsername(null);
+              setUserDisplayName(null);
             }
             lastError = null;
             break;
@@ -151,6 +161,8 @@ export function AuthProvider({ children }) {
       } else {
         setCurrentUser(null);
         setUserRole(null);
+        setUserUsername(null);
+        setUserDisplayName(null);
         setIsGcalConnected(false);
       }
       setLoading(false);
@@ -344,6 +356,10 @@ export function AuthProvider({ children }) {
   const value = {
     currentUser,
     userRole,
+    userUsername,
+    userDisplayName,
+    setUserUsername,
+    setUserDisplayName,
     login,
     signup,
     loginWithGoogle,

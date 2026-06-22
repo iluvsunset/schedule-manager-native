@@ -1,8 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatTime } from '../../utils/helpers';
-import { LayoutDashboard, Calendar, Users, CalendarDays, Shield, ClipboardList, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, CalendarDays, Shield, ClipboardList, MessageSquare, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { openExternalUrl } from '../../platform';
 
@@ -32,10 +32,15 @@ export default function Sidebar({
   classes = []
 }) {
   const { userRole, can } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const showAdmin = can('view_console');
   const showGcal = can('connect_gcal');
   const isStudent = userRole === 'student';
+
+  const isAdminActive = location.pathname === '/admin';
+  const isProfileActive = location.pathname === '/profile';
 
   // Calculate live panel values for students
   let statusLabel = 'IDLE';
@@ -89,12 +94,19 @@ export default function Sidebar({
             ...(!isStudent ? [{ id: 'members', label: 'Class Members', icon: Users }] : []),
             ...(showGcal ? [{ id: 'gcal', label: 'Google Calendar', icon: CalendarDays }] : [])
           ].map((item) => {
-            const isActive = activeTab === item.id;
+            const isActive = activeTab === item.id && !isProfileActive && !isAdminActive;
             return (
               <motion.a key={item.id} variants={linkVariants}
                 href="#" 
-                className="nav-item"
-                onClick={(e) => { e.preventDefault(); setActiveTab(item.id); }}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+                onClick={(e) => { 
+                  e.preventDefault(); 
+                  if (location.pathname !== '/') {
+                    navigate('/', { state: { activeTab: item.id } });
+                  } else {
+                    setActiveTab(item.id); 
+                  }
+                }}
                 whileTap={{ scale: 0.85 }}
                 style={{ 
                   position: 'relative',
@@ -139,12 +151,88 @@ export default function Sidebar({
       {showAdmin && (
         <div id="consoleLinkSection">
           <div className="nav-section-label">Admin</div>
-          <Link to="/admin" className="nav-item">
-            <Shield size={18} style={{ marginRight: '8px' }} />
-            Console
+          <Link 
+            to="/admin" 
+            className={`nav-item ${isAdminActive ? 'active' : ''}`}
+            style={{ 
+              position: 'relative', 
+              color: isAdminActive ? 'var(--text-primary)' : 'var(--text-secondary)' 
+            }}
+          >
+            {isAdminActive && (
+              <motion.div
+                layoutId="activeTabIndicator"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                  borderRadius: '6px',
+                  zIndex: -1
+                }}
+                transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  left: -1,
+                  top: '25%',
+                  height: '50%',
+                  width: '3px',
+                  background: 'var(--brand-primary, #3b82f6)',
+                  borderRadius: '0 4px 4px 0'
+                }} />
+              </motion.div>
+            )}
+            <Shield size={18} style={{ marginRight: '8px', zIndex: 1 }} />
+            <span style={{ zIndex: 1 }}>Console</span>
           </Link>
         </div>
       )}
+
+      <div>
+        <div className="nav-section-label">Account</div>
+        <Link 
+          to="/profile" 
+          className={`nav-item ${isProfileActive ? 'active' : ''}`}
+          style={{ 
+            position: 'relative', 
+            color: isProfileActive ? 'var(--text-primary)' : 'var(--text-secondary)' 
+          }}
+        >
+          {isProfileActive && (
+            <motion.div
+              layoutId="activeTabIndicator"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                borderRadius: '6px',
+                zIndex: -1
+              }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div style={{
+                position: 'absolute',
+                left: -1,
+                top: '25%',
+                height: '50%',
+                width: '3px',
+                background: 'var(--brand-primary, #3b82f6)',
+                borderRadius: '0 4px 4px 0'
+              }} />
+            </motion.div>
+          )}
+          <User size={18} style={{ marginRight: '8px', zIndex: 1 }} />
+          <span style={{ zIndex: 1 }}>My Profile</span>
+        </Link>
+      </div>
 
       {isStudent && (
         <>

@@ -101,7 +101,7 @@ function getWebhookEmailTemplate({ title, superTitle, body, btnText, btnColor, b
         }
         .btn {
           display: inline-block;
-          background-color: \${btnColor || '#FFC01E'};
+          background-color: ${btnColor || '#FFC01E'};
           color: #2B2B2B !important;
           padding: 14px 36px;
           border-radius: 12px;
@@ -128,15 +128,15 @@ function getWebhookEmailTemplate({ title, superTitle, body, btnText, btnColor, b
           <span></span><span></span><span></span><span></span><span></span><span></span>
         </div>
         <div class="card">
-          <div class="super-title">\${superTitle}</div>
-          <h2 class="class-title">\${title}</h2>
+          <div class="super-title">${superTitle}</div>
+          <h2 class="class-title">${title}</h2>
           
           <div style="text-align: left;">
-            \${body}
+            ${body}
           </div>
 
           <div style="margin-top: 32px; text-align: center;">
-            <a href="\${btnLink}" class="btn">\${btnText}</a>
+            <a href="${btnLink}" class="btn">${btnText}</a>
           </div>
         </div>
         

@@ -1,15 +1,15 @@
 {
-  "version": "0.1.1",
-  "notes": "Multi-event calendar view upgrades, quick action toolbar integrations, lag-free entrance animations, and full-stack Vercel backend integration.",
-  "pub_date": "2026-06-20T17:30:00Z",
+  "version": "0.1.2",
+  "notes": "Added integrated Profile Settings page, user-custom timezone selectors, location-based cron reminders, custom glassmorphic dropdown list options, and fluid shimmer loading animations.",
+  "pub_date": "2026-06-22T15:24:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWxRQVV6eGxlT0E5ZXptM2lidUhJS2ZXalVIOCtVbWY3a1EyLyszVllXV1EzaGhwd1NLTFNmTzVkMHoreVhZNXdmMnNNZlpQTnluRHZ2a1plWS9iVEFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxOTY5NDI1CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CmpGTGlWMHVTWWxJdzNyTk5nbGpBRk9qNkYydi96bGRJVWh3NWxQdXliUFdhMGNaT0UrUW95MWtqWnZHWFF0OVcrNkR1T3plUHlhUlFFTHRWRkZXcERBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.1/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWw4ZURUakpIOEZTZ1BLZ2VrQ0JwRjJmU29EYTcwNEVCYVhZbmZ2cUNNeXRIWEhVUnBJV1dDQ0JpM1ZlL0g2clA5azVuejRCOFdmck9HRUU4NXNKMHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTM0Njc1CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6ClpZTHFTY1MreFU4OEM0eE9oS3VrOUNQY3R5UUFqSnVETWF1YjBibXM1K2xmaGk2WTFNUnBxZmFEdktTYjNUQ1NmVGUvK0VFVm5tekZ6dlpxZSsvdkN3PT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.2/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWxRQVV6eGxlT0E5ZXptM2lidUhJS2ZXalVIOCtVbWY3a1EyLyszVllXV1EzaGhwd1NLTFNmTzVkMHoreVhZNXdmMnNNZlpQTnluRHZ2a1plWS9iVEFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgxOTY5NDI1CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CmpGTGlWMHVTWWxJdzNyTk5nbGpBRk9qNkYydi96bGRJVWh3NWxQdXliUFdhMGNaT0UrUW95MWtqWnZHWFF0OVcrNkR1T3plUHlhUlFFTHRWRkZXcERBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.1/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWw4ZURUakpIOEZTZ1BLZ2VrQ0JwRjJmU29EYTcwNEVCYVhZbmZ2cUNNeXRIWEhVUnBJV1dDQ0JpM1ZlL0g2clA5azVuejRCOFdmck9HRUU4NXNKMHdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyMTM0Njc1CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6ClpZTHFTY1MreFU4OEM0eE9oS3VrOUNQY3R5UUFqSnVETWF1YjBibXM1K2xmaGk2WTFNUnBxZmFEdktTYjNUQ1NmVGUvK0VFVm5tekZ6dlpxZSsvdkN3PT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.2/Schedule.Manager.app.tar.gz"
     }
   }
 }

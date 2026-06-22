@@ -83,6 +83,51 @@ function getTemplate(type, data) {
       title = "System Test";
       body = `<p class="text" style="text-align:center;">Secure backend connection verified successfully. All systems operational!</p>`;
       break;
+
+    case 'schedule_rescheduled':
+      title = "Class Rescheduled";
+      body = `
+        <h2 class="class-title">${data.place || 'Class Event'}</h2>
+        <p class="text">Your class has been <strong>rescheduled</strong>. Please update your calendar with the new time.</p>
+        <div class="info-box">
+          ${data.old_time ? `
+          <div class="info-row">
+            <span class="label">Old Time</span>
+            <span class="value" style="text-decoration: line-through; color: #EF4444;">${data.old_time}</span>
+          </div>` : ''}
+          <div class="info-row">
+            <span class="label">New Time</span>
+            <span class="value" style="color: #10B981; font-weight: bold;">${data.time || 'See dashboard'}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">New Date</span>
+            <span class="value">${data.date || 'See dashboard'}</span>
+          </div>
+        </div>
+        ${data.notes ? `<div class="notes-box"><div class="notes-header">Note</div><p class="notes-text">${data.notes}</p></div>` : ''}
+      `;
+      btnText = "View Updated Schedule";
+      break;
+
+    case 'schedule_cancelled':
+      title = "Class Cancelled";
+      body = `
+        <h2 class="class-title">${data.place || 'Class Event'}</h2>
+        <p class="text">We're sorry to inform you that the following class session has been <strong style="color: #EF4444;">cancelled</strong>.</p>
+        <div class="info-box">
+          <div class="info-row">
+            <span class="label">Class</span>
+            <span class="value">${data.place || 'N/A'}</span>
+          </div>
+          ${data.date ? `<div class="info-row">
+            <span class="label">Was on</span>
+            <span class="value">${data.date}</span>
+          </div>` : ''}
+        </div>
+        ${data.notes ? `<div class="notes-box"><div class="notes-header">Reason</div><p class="notes-text">${data.notes}</p></div>` : ''}
+      `;
+      btnText = "View Schedule";
+      break;
   }
 
   return `

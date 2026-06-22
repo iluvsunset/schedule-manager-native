@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 const containerVariants = {
@@ -37,7 +38,15 @@ import { getWebDomain } from '../platform';
 
 export default function Dashboard() {
   const { currentUser, userRole } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => location.state?.activeTab || 'dashboard');
+
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state?.activeTab]);
+
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState([]);

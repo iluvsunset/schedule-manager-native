@@ -1,7 +1,8 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { showMessage } from '../../utils/helpers';
-import { Search, LogOut, Key } from 'lucide-react';
+import { Search, LogOut, Key, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Topbar({ 
   searchTerm = '', 
@@ -10,7 +11,11 @@ export default function Topbar({
   selectedClassId = '', 
   onSelectClass = () => {} 
 }) {
-  const { currentUser, userRole, logout, resetPassword } = useAuth();
+  const { currentUser, userRole, userDisplayName, userUsername, logout, resetPassword } = useAuth();
+  
+  // Derive display label: displayName > username > email
+  const displayLabel = userDisplayName || userUsername || currentUser?.email;
+  const avatarLetter = (userDisplayName || userUsername || currentUser?.email || '?')[0].toUpperCase();
   
   const handleResetPassword = async () => {
     try {
@@ -91,13 +96,13 @@ export default function Topbar({
           />
         </div>
 
-        <div className="user-menu" id="userMenuBtn">
+        <Link to="/profile" className="user-menu" id="userMenuBtn" style={{ textDecoration: 'none' }}>
           <div className="user-info">
-            <div className="user-email" style={{ fontSize: '13px' }}>{currentUser?.email}</div>
+            <div className="user-email" style={{ fontSize: '13px' }}>{displayLabel}</div>
             <div className={`user-role badge badge-${userRole}`}>{userRole?.replace('_', ' ')}</div>
           </div>
-          <div className="user-avatar">{currentUser?.email?.[0].toUpperCase()}</div>
-        </div>
+          <div className="user-avatar">{avatarLetter}</div>
+        </Link>
 
         <button onClick={handleResetPassword} className="btn btn-ghost" title="Set/Reset Password">
           <Key size={18} />

@@ -63,35 +63,33 @@ module.exports = async function handler(req, res) {
     const db = admin.firestore();
     try { db.settings({ preferRest: true }); } catch (e) { }
 
-    // 2. Determine "Today" and "Tomorrow"
+    // 2. Determine "Tomorrow" (day before the event date)
     const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(now);
-    endOfDay.setHours(23, 59, 59, 999);
-    
+    const startOfTomorrow = new Date(now);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    startOfTomorrow.setHours(0, 0, 0, 0);
     const endOfTomorrow = new Date(now);
     endOfTomorrow.setDate(endOfTomorrow.getDate() + 1);
     endOfTomorrow.setHours(23, 59, 59, 999);
 
     // Firestore Timestamps
-    const startTs = admin.firestore.Timestamp.fromDate(startOfDay);
+    const startTs = admin.firestore.Timestamp.fromDate(startOfTomorrow);
     const endTs = admin.firestore.Timestamp.fromDate(endOfTomorrow);
 
-    console.log(`Cron: Scanning for schedules between ${startOfDay.toISOString()} and ${endOfTomorrow.toISOString()}`);
+    console.log(`Cron: Scanning for tomorrow's schedules between ${startOfTomorrow.toISOString()} and ${endOfTomorrow.toISOString()}`);
 
-    // 3. Query Schedules
+    // 3. Query Schedules happening TOMORROW only
     const snapshot = await db.collection('schedules')
       .where('date', '>=', startTs)
       .where('date', '<=', endTs)
       .get();
 
     if (snapshot.empty) {
-      console.log('No schedules found for today or tomorrow.');
-      return res.status(200).json({ message: 'No schedules found for today or tomorrow.' });
+      console.log('No schedules found for tomorrow.');
+      return res.status(200).json({ message: 'No schedules found for tomorrow.' });
     }
 
-    console.log(`Found ${snapshot.size} schedule(s) for today and tomorrow.`);
+    console.log(`Found ${snapshot.size} schedule(s) for tomorrow.`);
 
     // 4. (Removed Mailjet API keys logic)
     
@@ -136,19 +134,30 @@ module.exports = async function handler(req, res) {
             continue;
           }
 
-          // Check if event is today or tomorrow
-          const scheduleDateObj = schedule.date.toDate();
-          const isToday = scheduleDateObj <= endOfDay;
-          const dayString = isToday ? 'today' : 'tomorrow';
-          const dayLabel = isToday ? 'Today' : 'Tomorrow';
+          // Use user's saved timezone, fallback to Vietnam (UTC+7)
+          const userTimezone = (userSnap.exists && userSnap.data().timezone) 
+            ? userSnap.data().timezone 
+            : 'Asia/Ho_Chi_Minh';
 
-          // Format time properly (using Vietnam/Indochina time zone UTC+7)
+          // All reminders are for tomorrow (day-before notification)
+          const dayString = 'tomorrow';
+          const dayLabel = 'Tomorrow';
+
+          const scheduleDateObj = schedule.date.toDate();
+
+          // Format time in user's local timezone
           const scheduleTime = scheduleDateObj.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
-            timeZone: 'Asia/Ho_Chi_Minh',
+            timeZone: userTimezone,
             hour12: false
           });
+
+          // Get timezone abbreviation/offset for display
+          const tzLabel = scheduleDateObj.toLocaleTimeString('en-US', {
+            timeZone: userTimezone,
+            timeZoneName: 'short'
+          }).split(' ').slice(-1)[0] || userTimezone.split('/').pop().replace('_', ' ');
 
           const html = `
                     <!DOCTYPE html>
@@ -289,7 +298,7 @@ module.exports = async function handler(req, res) {
                           <div class="info-box">
                             <div class="info-row">
                               <span class="label">Time</span>
-                              <span class="value">${scheduleTime}</span>
+                              <span class="value">${scheduleTime} <span style="font-size: 12px; color: #718096;">(${tzLabel})</span></span>
                             </div>
                             <div class="info-row">
                               <span class="label">Date</span>

@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import SyncStatusIndicator from './components/SyncStatusIndicator.jsx';
 import NotificationManager from './components/NotificationManager.jsx';
 import BrowserDeprecation from './components/BrowserDeprecation.jsx';
@@ -24,6 +25,7 @@ function AnimatedRoutes() {
           <>
             <Route path="/" element={<Dashboard />} />
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         )}

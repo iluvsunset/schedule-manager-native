@@ -32,6 +32,8 @@ export default function AdminPanel() {
   // Forms states
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('student');
+  const [inviteUsername, setInviteUsername] = useState('');
+  const [inviteDisplayName, setInviteDisplayName] = useState('');
   const [newClassName, setNewClassName] = useState('');
 
   // Class Editor Modal states
@@ -182,16 +184,22 @@ export default function AdminPanel() {
   const handleInviteUser = async (e) => {
     e.preventDefault();
     const email = inviteEmail.trim().toLowerCase();
+    const username = inviteUsername.trim().toLowerCase().replace(/\s+/g, '_');
+    const displayName = inviteDisplayName.trim();
     if (!email) return;
     try {
       await setDoc(doc(db, 'allowed_users', email), {
         email,
         role: inviteRole,
+        ...(username && { username }),
+        ...(displayName && { displayName }),
         addedAt: Timestamp.now()
       });
       await writeSystemLog('admin_action', 'admin_panel', `Added user ${email} with role ${inviteRole}`, { email, role: inviteRole });
       showMessage(`Added ${email} successfully!`, 'success');
       setInviteEmail('');
+      setInviteUsername('');
+      setInviteDisplayName('');
     } catch (err) {
       showMessage(err.message, 'error');
     }
@@ -898,6 +906,12 @@ export default function AdminPanel() {
       } else if (testTemplate === 'class_invite') {
         subject = 'You have been added to Class 12B';
         data = { class_name: 'Class 12B (Test)', link: getWebDomain() };
+      } else if (testTemplate === 'schedule_rescheduled') {
+        subject = 'Rescheduled: Mathematics Class';
+        data = { place: 'Mathematics 11A', old_time: 'Monday, June 23 · 09:00 AM', time: 'Tuesday, June 24 · 10:30 AM', date: 'Tuesday, June 24', notes: 'Room change due to maintenance.', link: getWebDomain() };
+      } else if (testTemplate === 'schedule_cancelled') {
+        subject = 'Cancelled: Chemistry Lab Session';
+        data = { place: 'Chemistry Lab', date: 'Monday, June 23', notes: 'Teacher unavailable — class will be made up next week.', link: getWebDomain() };
       }
 
       const apiBase = getApiBase();
@@ -1051,7 +1065,14 @@ export default function AdminPanel() {
                           filteredUsers.map(u => (
                             <div key={u.id} className="list-item" style={{ marginBottom: '8px' }}>
                               <div className="item-main">
-                                <span className="item-title">{u.email}</span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                  <span className="item-title">
+                                    {u.displayName || u.username || u.email}
+                                  </span>
+                                  {(u.displayName || u.username) && (
+                                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)', opacity: 0.7 }}>{u.email}</span>
+                                  )}
+                                </div>
                                 <span className="item-subtitle" style={{ marginLeft: '10px' }}>
                                   <span className={`badge badge-${u.role}`}>{u.role.replace('_', ' ')}</span>
                                 </span>
@@ -1078,6 +1099,24 @@ export default function AdminPanel() {
                           Invite New User
                         </div>
                         <form onSubmit={handleInviteUser} style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+                          <div className="form-group">
+                            <label>Display Name <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(shown in UI)</span></label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. Bao Nguyen" 
+                              value={inviteDisplayName} 
+                              onChange={e => setInviteDisplayName(e.target.value)} 
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Username <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>(unique, no spaces)</span></label>
+                            <input 
+                              type="text" 
+                              placeholder="e.g. bao.nguyen" 
+                              value={inviteUsername} 
+                              onChange={e => setInviteUsername(e.target.value.toLowerCase().replace(/\s+/g, '_'))} 
+                            />
+                          </div>
                           <div className="form-group">
                             <label>Email Address</label>
                             <input 
@@ -1696,7 +1735,9 @@ export default function AdminPanel() {
             <div className="apple-modal-list-container">
               {[
                 { id: 'schedule_created', label: 'New Schedule Notifications' },
-                { id: 'schedule_reminder', label: 'Schedule Reminders' },
+                { id: 'schedule_reminder', label: 'Schedule Reminders (Day Before)' },
+                { id: 'schedule_rescheduled', label: 'Schedule Rescheduled Alerts' },
+                { id: 'schedule_cancelled', label: 'Schedule Cancellation Notices' },
                 { id: 'class_invite', label: 'Class Enrollment Invites' },
                 { id: 'review_sent', label: 'Lesson Reviews' }
               ].map((type, idx) => (
@@ -1755,10 +1796,12 @@ export default function AdminPanel() {
               <div className="form-group">
                 <label>Template Type</label>
                 <select value={testTemplate} onChange={e => setTestTemplate(e.target.value)}>
-                  <option value="schedule_created">New Schedule Created</option>
-                  <option value="schedule_reminder">Schedule Reminder</option>
-                  <option value="review_sent">Lesson Review Sent</option>
-                  <option value="class_invite">Class Invitation</option>
+                  <option value="schedule_created">📅 New Schedule Created</option>
+                  <option value="schedule_reminder">⏰ Schedule Reminder (Day Before)</option>
+                  <option value="schedule_rescheduled">🔄 Schedule Rescheduled</option>
+                  <option value="schedule_cancelled">❌ Schedule Cancelled</option>
+                  <option value="review_sent">📝 Lesson Review Sent</option>
+                  <option value="class_invite">🎓 Class Invitation</option>
                 </select>
               </div>
               <div className="form-group" style={{ marginBottom: '20px' }}>

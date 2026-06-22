@@ -34,10 +34,12 @@ if (sa) {
 
 const db = admin.firestore();
 
-const message = `🚀 Chronos Upgrade Released!
-• Unified Desktop & Web Experience: Deprecated the mobile dashboard for a single, fully responsive dashboard.
-• Calendar Quick Actions: Clicking a calendar day now opens a compact card listing events with immediate action buttons (Start, Complete, Cancel, Delete, Details).
-• Detail Modal Toolbar: Manage events directly from the Detail Modal with a beautiful bottom action toolbar.`;
+const message = `🚀 Chronos Upgrade Released! (v0.1.2)
+• Integrated Profile Settings Page: Easily configure your Display Name, Username, and custom Location & Timezone context.
+• Location-Based Cron Reminders: Automatic reminder emails are now dispatched precisely relative to your custom timezone.
+• Custom UI Select Components: Implemented state-driven dropdown selectors with fluid Framer Motion animations.
+• Shimmer Skeleton Loading: Added custom layout shimmer loaders to avoid visual jank and layout shifts during fetching.
+• New Email Reschedule & Cancel Templates: Verified simulated reschedule/cancellation templates in the admin control matrix.`;
 
 async function broadcast() {
   try {
