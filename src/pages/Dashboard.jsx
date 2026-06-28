@@ -144,8 +144,45 @@ export default function Dashboard() {
 
     return unsubscribe;
   }, [currentUser, userRole]);
+ 
+  // 2b. Auto-Start & Auto-Complete Hook
+  useEffect(() => {
+    if (schedules.length === 0 || !currentUser) return;
 
-  // 2b. Check for upcoming Google synced events to prompt the teacher
+    const now = new Date();
+    schedules.forEach(async (s) => {
+      const date = s.date ? (s.date.toDate ? s.date.toDate() : new Date(s.date)) : null;
+      if (!date) return;
+
+      // 1. Auto-Start: 'upcoming' -> 'ongoing' if event time is met/passed
+      if (s.status === 'upcoming' && date <= now) {
+        try {
+          console.log(`[Client Auto-Scheduler] Auto-starting event: "${s.place}"`);
+          await updateDoc(doc(db, 'schedules', s.id), { status: 'ongoing' });
+        } catch (e) {
+          console.error("Failed to auto-start schedule:", e);
+        }
+      }
+
+      // 2. Auto-Complete: 'ongoing' -> 'completed' if next calendar day start is met/passed
+      if (s.status === 'ongoing') {
+        const nextDayStart = new Date(date);
+        nextDayStart.setDate(nextDayStart.getDate() + 1);
+        nextDayStart.setHours(0, 0, 0, 0); // 00:00 of the next calendar day
+
+        if (now >= nextDayStart) {
+          try {
+            console.log(`[Client Auto-Scheduler] Auto-completing event: "${s.place}"`);
+            await updateDoc(doc(db, 'schedules', s.id), { status: 'completed' });
+          } catch (e) {
+            console.error("Failed to auto-complete schedule:", e);
+          }
+        }
+      }
+    });
+  }, [schedules, currentUser]);
+
+  // 2c. Check for upcoming Google synced events to prompt the teacher
   useEffect(() => {
     if (loading || !currentUser || !userRole || schedules.length === 0) return;
     
@@ -427,16 +464,22 @@ export default function Dashboard() {
           const formattedDate = formatDate(d);
           const formattedTime = formatTime(d);
           const recipientEmails = s.participants || [];
-          let sentCount = 0;
+          const successEmails = [];
           for (const email of recipientEmails) {
             const uSnap = await getDoc(doc(db, 'allowed_users', email.toLowerCase()));
             const role = uSnap.exists() ? uSnap.data().role : 'student';
             
             const emailData = { place: s.place, time: formattedTime, date: formattedDate, link: getWebDomain() };
             const sent = await sendDynamicEmail(currentUser, email, email.split('@')[0], `Reminder: ${s.place}`, emailData, 'schedule_reminder');
-            if (sent) sentCount++;
+            if (sent) {
+              successEmails.push(email);
+            }
           }
-          showMessage(`Sent ${sentCount} reminders! To: ${recipientEmails.join(', ')}`, 'success');
+          if (successEmails.length > 0) {
+            showMessage(`Sent ${successEmails.length} reminders! To: ${successEmails.join(', ')}`, 'success');
+          } else {
+            showMessage('No reminders sent (all recipients have muted notifications).', 'info');
+          }
         } catch (err) {
           showMessage(err.message, 'error');
         }

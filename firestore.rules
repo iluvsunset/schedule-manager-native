@@ -56,10 +56,15 @@ service cloud.firestore {
     // --- Collection Rules ---
 
     // 1. Allowed Users: Coordinators, IT, and Senior Teachers can manage
-    // Normal teachers can only read their own user document to check their role
+    // Normal users can read and update their own document, but cannot change their role
     match /allowed_users/{email} {
       allow read: if isSignedIn() && (isIT() || isCoordinator() || isSeniorTeacher() || getEmail() == email);
-      allow write: if isIT() || isCoordinator() || isSeniorTeacher();
+      allow create, delete: if isIT() || isCoordinator() || isSeniorTeacher();
+      allow update: if isIT() || isCoordinator() || isSeniorTeacher() || (
+        isSignedIn() && 
+        getEmail() == email && 
+        (request.resource.data.role == resource.data.role)
+      );
     }
 
     // 2. Schedules:

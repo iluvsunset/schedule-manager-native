@@ -134,6 +134,19 @@ export default function WebGLBackground() {
       const uResolution = gl.getUniformLocation(program, 'u_resolution');
       const uTime = gl.getUniformLocation(program, 'u_time');
 
+      let speedMultiplier = 1.0;
+      const updateSettings = () => {
+        const isEnabled = localStorage.getItem('webgl_enabled') !== 'false';
+        if (canvas) {
+          canvas.style.display = isEnabled ? 'block' : 'none';
+        }
+        const speedStr = localStorage.getItem('ambient_speed') || 'normal';
+        speedMultiplier = speedStr === 'off' ? 0.0 : speedStr === 'slow' ? 0.35 : speedStr === 'fast' ? 2.0 : 1.0;
+      };
+
+      updateSettings();
+      window.addEventListener('ambient_config_changed', updateSettings);
+
       // Resize handler
       let dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -151,8 +164,15 @@ export default function WebGLBackground() {
       window.addEventListener('resize', resize);
 
       // Render loop — uncapped for maximum smoothness
+      let lastTime = 0;
+      let accumulatedTime = 0;
+
       function render(now) {
         rafRef.current = requestAnimationFrame(render);
+
+        const dt = now - (lastTime || now);
+        lastTime = now;
+        accumulatedTime += dt * 0.001 * speedMultiplier;
 
         gl.useProgram(program);
 
@@ -161,7 +181,7 @@ export default function WebGLBackground() {
         gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
 
         gl.uniform2f(uResolution, canvas.width, canvas.height);
-        gl.uniform1f(uTime, now * 0.001);
+        gl.uniform1f(uTime, accumulatedTime);
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
@@ -170,6 +190,7 @@ export default function WebGLBackground() {
 
       cleanup = () => {
         window.removeEventListener('resize', resize);
+        window.removeEventListener('ambient_config_changed', updateSettings);
         if (rafRef.current) cancelAnimationFrame(rafRef.current);
         gl.deleteProgram(program);
         gl.deleteShader(vs);

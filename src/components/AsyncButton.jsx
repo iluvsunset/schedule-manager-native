@@ -25,6 +25,7 @@ export default function AsyncButton({
       setState('success');
       setTimeout(() => setState('idle'), 2000);
     } catch (err) {
+      console.error('AsyncButton action failed:', err);
       setState('error');
       setTimeout(() => setState('idle'), 2000);
     }

@@ -348,12 +348,35 @@ module.exports = async function handler(req, res) {
           const oldStart = data.date ? data.date.toDate() : null;
           const hasTimeChanged = oldStart ? (oldStart.getTime() !== start.getTime()) : false;
 
-          await existingDoc.ref.update({
+          const updateData = {
             date: admin.firestore.Timestamp.fromDate(start),
-            place: summary || 'Google Calendar Event',
-            location: event.location || event.hangoutLink || event.htmlLink || '',
-            notes: event.description || 'Automatically synced from Google Calendar',
-          });
+            notes: event.description || data.notes || 'Automatically synced from Google Calendar',
+          };
+
+          // 1. Only update place name if summary changed from originally synced summary
+          const oldOriginalSummary = data.originalSummary || data.place || '';
+          if (summary && summary !== oldOriginalSummary) {
+            updateData.place = summary;
+            updateData.originalSummary = summary;
+          }
+
+          // 2. Only update location if event location changed from last synced location
+          const newGcalLocation = event.location || event.hangoutLink || event.htmlLink || '';
+          const oldGcalLocation = data.gcalLocation !== undefined ? data.gcalLocation : (data.location || '');
+          if (newGcalLocation !== oldGcalLocation) {
+            updateData.location = newGcalLocation;
+            updateData.gcalLocation = newGcalLocation;
+            
+            // Clear metadata cache so it can be re-resolved
+            updateData.placeImage = null;
+            updateData.placeSummary = null;
+            updateData.placeRating = null;
+            updateData.placeCategory = null;
+            updateData.placeWebsite = null;
+            updateData.placePhone = null;
+          }
+
+          await existingDoc.ref.update(updateData);
           console.log(`Updated existing GCal event: ${summary}`);
           updatedCount++;
 
@@ -439,6 +462,8 @@ module.exports = async function handler(req, res) {
           date: admin.firestore.Timestamp.fromDate(start),
           place: summary || 'Google Calendar Event',
           location: event.location || event.hangoutLink || event.htmlLink || '',
+          originalSummary: summary || 'Google Calendar Event',
+          gcalLocation: event.location || event.hangoutLink || event.htmlLink || '',
           notes: event.description || 'Automatically synced from Google Calendar',
           participants: rule.participants,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),

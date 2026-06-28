@@ -5,6 +5,7 @@ import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { signInWithCustomToken } from 'firebase/auth';
 import { db, auth } from '../firebase';
 import { getApiBase, isNative, openExternalUrl } from '../platform';
+import { Loader2 } from 'lucide-react';
 
 const containerVariants = {
   hidden: { opacity: 1 },
@@ -35,6 +36,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState('');
   const [showResetFlow, setShowResetFlow] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { login, signup, loginWithGoogle, resetPassword } = useAuth();
 
   const [googleRedirecting, setGoogleRedirecting] = useState(false);
@@ -62,6 +64,7 @@ export default function Login() {
     setError('');
     setResetMessage('');
     setShowResetFlow(false);
+    setLoading(true);
     try {
       if (isSignUp) {
         await signup(email, password);
@@ -69,6 +72,7 @@ export default function Login() {
         await login(email, password);
       }
     } catch (err) {
+      setLoading(false);
       if (isSignUp && err.code === 'auth/email-already-in-use') {
         setError("This email is already registered. To add a password, please click below to receive a password setup link.");
         setShowResetFlow(true);
@@ -170,6 +174,7 @@ export default function Login() {
                 required 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div className="form-group">
@@ -180,10 +185,28 @@ export default function Login() {
                 required 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
-            <button type="submit" className="btn btn-primary btn-full">
-              {isSignUp ? 'Create Account' : 'Sign In'}
+            <button 
+              type="submit" 
+              className="btn btn-primary btn-full" 
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="spinner" size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                </>
+              ) : (
+                isSignUp ? 'Create Account' : 'Sign In'
+              )}
             </button>
             {showResetFlow && (
               <button 
@@ -191,6 +214,7 @@ export default function Login() {
                 onClick={handleResetPassword} 
                 className="btn btn-secondary btn-full" 
                 style={{marginTop: '12px'}}
+                disabled={loading}
               >
                 Send Password Setup Link
               </button>
