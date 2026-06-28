@@ -72,8 +72,9 @@ import { doc, getDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, 
 import { db } from '../../firebase';
 import { showMessage, sendDynamicEmail, formatTime, formatDate } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
+import { openExternalUrl } from '../../platform';
 
-import { AlertTriangle, Calendar, Clock, MapPin, FileText, Link, Zap, CheckCircle, Globe, Lock, X, Play, Edit3, Share2, Trash2, Send } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, MapPin, FileText, Link, Zap, CheckCircle, Globe, Lock, X, Play, Edit3, Share2, Trash2, Send, Search } from 'lucide-react';
 
 // ── CONFIRM MODAL ──────────────────────────────────────────────
 export function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
@@ -93,6 +94,84 @@ export function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
   );
 }
 
+// ── PROGRESS BAR ──────────────────────────────────────────────
+export function ScrapeProgressBar({ isSearching, duration = 4500 }) {
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('Connecting...');
+
+  useEffect(() => {
+    if (!isSearching) {
+      setProgress(0);
+      return;
+    }
+
+    setProgress(0);
+    setStatus('Initializing secure browser...');
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min((elapsed / duration) * 100, 95); // Cap at 95% until complete
+      setProgress(pct);
+
+      if (pct < 25) {
+        setStatus('Initializing secure browser...');
+      } else if (pct < 55) {
+        setStatus('Connecting to Google Maps...');
+      } else if (pct < 85) {
+        setStatus('Parsing place information and photos...');
+      } else {
+        setStatus('Compiling verified address details...');
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isSearching, duration]);
+
+  if (!isSearching) return null;
+
+  const secondsRemaining = Math.max(0, Math.ceil((duration - (progress / 100) * duration) / 1000));
+
+  return (
+    <div style={{
+      width: '100%',
+      padding: '16px',
+      background: 'rgba(255, 255, 255, 0.02)',
+      border: '1px solid rgba(255, 255, 255, 0.06)',
+      borderRadius: '12px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      marginBottom: '16px',
+      boxSizing: 'border-box'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+        <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{status}</span>
+        <span style={{ color: 'var(--brand-primary)', fontWeight: 600 }}>Est. {secondsRemaining}s remaining</span>
+      </div>
+      
+      {/* Progress track */}
+      <div style={{
+        width: '100%',
+        height: '6px',
+        background: 'rgba(255, 255, 255, 0.04)',
+        borderRadius: '3px',
+        overflow: 'hidden',
+        position: 'relative'
+      }}>
+        {/* Progress fill */}
+        <div style={{
+          width: `${progress}%`,
+          height: '100%',
+          background: 'linear-gradient(90deg, var(--brand-primary), #60A5FA)',
+          borderRadius: '3px',
+          transition: 'width 0.15s ease-out'
+        }} />
+      </div>
+    </div>
+  );
+}
+
 // ── DETAIL MODAL ──────────────────────────────────────────────
 export function EventDetailModal({ 
   isOpen, 
@@ -107,95 +186,585 @@ export function EventDetailModal({
   onSendReminder 
 }) {
   const { canEditSchedule, canDeleteSchedule, userRole } = useAuth();
+  const [imageUrl, setImageUrl] = useState(null);
+  const [loadingImage, setLoadingImage] = useState(false);
+  const [resolvedAddress, setResolvedAddress] = useState(null);
+  const [placeInfo, setPlaceInfo] = useState({
+    summary: '',
+    rating: '',
+    category: '',
+    website: '',
+    phone: '',
+    images: [],
+    latitude: null,
+    longitude: null,
+    aiSummary: null
+  });
+
+  // Filter out Gemini N/A placeholder responses
+  const isBlankAiField = (text) => {
+    if (!text) return true;
+    const lower = text.toLowerCase();
+    return lower.includes('not available') || lower.includes('not specified') || lower.includes('not provided') || lower.includes('no information') || lower.includes('from the provided details') || lower.includes('information is not');
+  };
+
+  const cleanAiSummary = (ai) => {
+    if (!ai) return null;
+    return {
+      ...ai,
+      openingHours: isBlankAiField(ai.openingHours) ? null : ai.openingHours,
+      priceRange: isBlankAiField(ai.priceRange) ? null : ai.priceRange,
+      goodFor: Array.isArray(ai.goodFor) ? ai.goodFor.filter(t => !isBlankAiField(t)) : [],
+      specialFeatures: Array.isArray(ai.specialFeatures) ? ai.specialFeatures.filter(f => !isBlankAiField(f.text)) : []
+    };
+  };
+
+  useEffect(() => {
+    if (!isOpen || !schedule) return;
+    setImageUrl(schedule.placeImage || null);
+    // If the stored location is a URL, fall back to null until resolved
+    const storedLocation = schedule.location || '';
+    const isStoredUrl = storedLocation.startsWith('http');
+    setResolvedAddress(isStoredUrl ? null : (storedLocation || null));
+    setPlaceInfo({
+      summary: schedule.placeSummary || '',
+      rating: schedule.placeRating || '',
+      category: schedule.placeCategory || '',
+      website: schedule.placeWebsite || '',
+      phone: schedule.placePhone || '',
+      images: schedule.placeImages || [],
+      latitude: schedule.placeLatitude || null,
+      longitude: schedule.placeLongitude || null,
+      aiSummary: cleanAiSummary(schedule.placeAiSummary) || null
+    });
+
+    const hasImage = !!schedule.placeImage;
+    const hasSummary = !!schedule.placeSummary;
+    const hasValidLocation = storedLocation && storedLocation.trim().length > 3;
+
+    if ((!hasImage || !hasSummary) && hasValidLocation) {
+      setLoadingImage(true);
+      const fetchPlaceImage = async () => {
+        try {
+          const response = await fetch('/api/places/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: storedLocation })
+          });
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            const firstResult = data.results[0];
+            const resolvedAddr = firstResult.address && !firstResult.address.includes('not found') ? firstResult.address : null;
+            setResolvedAddress(resolvedAddr);
+            setImageUrl(firstResult.image || null);
+            setPlaceInfo({
+              summary: firstResult.summary || '',
+              rating: firstResult.rating || '',
+              category: firstResult.category || '',
+              website: firstResult.website || '',
+              phone: firstResult.phone || '',
+              images: firstResult.images || [],
+              latitude: firstResult.latitude || null,
+              longitude: firstResult.longitude || null,
+              aiSummary: cleanAiSummary(firstResult.aiSummary) || null
+            });
+
+             await updateDoc(doc(db, 'schedules', schedule.id), { 
+               location: resolvedAddr || storedLocation,
+               placeImage: firstResult.image || null,
+               placeImages: firstResult.images || null,
+               placeSummary: firstResult.summary || null,
+               placeRating: firstResult.rating || null,
+               placeCategory: firstResult.category || null,
+               placeWebsite: firstResult.website || null,
+               placePhone: firstResult.phone || null,
+               placeLatitude: firstResult.latitude || null,
+               placeLongitude: firstResult.longitude || null,
+               placeAiSummary: firstResult.aiSummary || null
+             });
+          }
+        } catch (err) {
+          console.error("Failed to dynamically fetch place image:", err);
+        } finally {
+          setLoadingImage(false);
+        }
+      };
+      fetchPlaceImage();
+    }
+  }, [isOpen, schedule]);
+
   if (!schedule) return null;
   const date = schedule.date ? (schedule.date.toDate ? schedule.date.toDate() : new Date(schedule.date)) : null;
   const dueDisplay = schedule.assignmentDue ? new Date(schedule.assignmentDue).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="500px">
-        <div className="modal-header">
-          <h3>{schedule.place}</h3>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-        <div className="modal-body" style={{ paddingBottom: '16px' }}>
-          <div className="detail-group">
-            <div className="detail-row">
-              <div className="detail-icon"><Calendar size={16} /></div>
-              <div className="detail-content">
-                <div className="detail-label">Date</div>
-                <div className="detail-value">{date ? date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'All Day'}</div>
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="750px">
+        {imageUrl ? (
+          <div style={{ position: 'relative', width: '100%', height: '200px', background: 'rgba(0,0,0,0.4)' }}>
+            <img 
+              src={imageUrl} 
+              referrerPolicy="no-referrer"
+              alt={schedule.place} 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              onError={() => setImageUrl(null)}
+            />
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(15,15,15,0.95))'
+            }} />
+            
+            <div style={{
+              position: 'absolute',
+              bottom: '16px',
+              left: '24px',
+              right: '24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-end',
+            }}>
+              <div>
+                {placeInfo.category && (
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: 'var(--brand-primary)',
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    letterSpacing: '0.05em'
+                  }}>
+                    {placeInfo.category}
+                  </span>
+                )}
+                <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'white', margin: '8px 0 0 0' }}>{schedule.place}</h2>
               </div>
+              <button className="modal-close" onClick={onClose} style={{ color: 'white', background: 'rgba(0,0,0,0.4)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}>×</button>
             </div>
-            <div className="detail-row">
-              <div className="detail-icon"><Clock size={16} /></div>
-              <div className="detail-content">
-                <div className="detail-label">Time</div>
-                <div className="detail-value">{date ? formatTime(date) : 'All Day'}</div>
-              </div>
-            </div>
-            {schedule.location && !schedule.location.includes('google.com/calendar/event') && (
-              <div className="detail-row">
-                <div className="detail-icon"><MapPin size={16} /></div>
-                <div className="detail-content">
-                  <div className="detail-label">Location</div>
-                  <div className="detail-value">
-                    <a href={schedule.location.startsWith('http') || schedule.location.startsWith('www') ? (schedule.location.startsWith('www') ? 'https://' + schedule.location : schedule.location) : '#'} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)' }}>
-                      {schedule.location}
-                    </a>
+          </div>
+        ) : (
+          <div className="modal-header">
+            <h3>{schedule.place}</h3>
+            <button className="modal-close" onClick={onClose}>×</button>
+          </div>
+        )}
+
+        <div className="modal-body" style={{ padding: '24px', paddingBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            
+            {/* Left Column: Schedule info */}
+            <div style={{ flex: '1.2', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0, alignSelf: 'flex-start' }}>
+              <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Time & Schedule</div>
+              
+              <div style={{ display: 'flex', gap: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', color: 'var(--brand-primary)', flexShrink: 0, paddingLeft: '10px' }}>
+                    <Calendar size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Date</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{date ? date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : 'All Day'}</div>
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', color: 'var(--color-success)', flexShrink: 0, paddingLeft: '10px' }}>
+                    <Clock size={16} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Time</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{date ? formatTime(date) : 'All Day'}</div>
                   </div>
                 </div>
               </div>
-            )}
-            {schedule.notes && (
-              <div className="detail-row">
-                <div className="detail-icon"><FileText size={16} /></div>
-                <div className="detail-content">
-                  <div className="detail-label">Notes</div>
-                  <div className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{schedule.notes}</div>
-                </div>
-              </div>
-            )}
-            {schedule.source === 'google_calendar' && (
-              <div className="detail-row">
-                <div className="detail-icon"><Link size={16} /></div>
-                <div className="detail-content">
-                  <div className="detail-label">Source</div>
-                  <div className="detail-value" style={{ color: 'var(--text-secondary)' }}>Imported from Google Calendar</div>
-                </div>
-              </div>
-            )}
-          </div>
 
-          {schedule.assignmentTask && (
-            <div className="detail-group" style={{ borderColor: 'rgba(245, 158, 11, 0.3)', background: 'rgba(245, 158, 11, 0.04)' }}>
-              <div className="detail-row">
-                <div className="detail-icon"><Zap size={16} color="var(--color-warning)" /></div>
-                <div className="detail-content">
-                  <div className="detail-label" style={{ color: 'var(--color-warning)' }}>Assignment</div>
-                  <div className="detail-value">{schedule.assignmentTask}</div>
-                  {dueDisplay && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Due: {dueDisplay}</div>}
-                  {schedule.assignmentLink && (
-                    <a href={schedule.assignmentLink.startsWith('http') ? schedule.assignmentLink : 'https://' + schedule.assignmentLink} target="_blank" rel="noreferrer" className="task-link" style={{ display: 'inline-block', marginTop: '6px', fontSize: '13px', color: 'var(--brand-primary)' }}>
-                      Open Resource →
+              {schedule.notes && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Notes</div>
+                  <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                    {schedule.notes}
+                  </div>
+                </div>
+              )}
+
+              {schedule.assignmentTask && (
+                <div style={{ border: '1px solid rgba(245, 158, 11, 0.2)', background: 'rgba(245, 158, 11, 0.02)', padding: '16px', borderRadius: '12px', display: 'flex', gap: '12px' }}>
+                  <div style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: '2px' }}><Zap size={16} /></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-warning)' }}>Assignment</div>
+                    <div style={{ fontSize: '13px', color: 'white' }}>{schedule.assignmentTask}</div>
+                    {dueDisplay && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>Due Date: {dueDisplay}</div>}
+                    {schedule.assignmentLink && (
+                      <a 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const targetUrl = schedule.assignmentLink.startsWith('http') ? schedule.assignmentLink : 'https://' + schedule.assignmentLink;
+                          openExternalUrl(targetUrl);
+                        }}
+                        style={{ alignSelf: 'flex-start', marginTop: '6px', fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600 }}
+                      >
+                        Open Resources →
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(schedule.reviewLearned || schedule.reviewNotes) && (
+                <div style={{ border: '1px solid rgba(16, 185, 129, 0.2)', background: 'rgba(16, 185, 129, 0.02)', padding: '16px', borderRadius: '12px', display: 'flex', gap: '12px' }}>
+                  <div style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: '2px' }}><CheckCircle size={16} /></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-success)' }}>Review & Progress</div>
+                    {schedule.reviewLearned && <div style={{ fontSize: '13px', color: 'white' }}>{schedule.reviewLearned}</div>}
+                    {schedule.reviewNotes && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>"{schedule.reviewNotes}"</div>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Google Places details */}
+            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '28px' }}>
+              <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span>Place Intelligence Console</span>
+                {placeInfo.rating && (
+                  <span style={{ fontSize: '12px', color: '#FBBF24', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    ★ {placeInfo.rating}
+                  </span>
+                )}
+              </div>
+
+              {/* 1. Leaflet Interactive Dark Map with Card Overlay */}
+              {placeInfo.latitude && placeInfo.longitude && (
+                <div style={{ position: 'relative', width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+                  <iframe 
+                    title="map"
+                    srcDoc={`
+                      <!DOCTYPE html>
+                      <html>
+                      <head>
+                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                        <style>
+                          body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #020617; }
+                          .leaflet-marker-icon { filter: hue-rotate(140deg); }
+                        </style>
+                      </head>
+                      <body>
+                        <div id="map"></div>
+                        <script>
+                          const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${placeInfo.latitude}, ${placeInfo.longitude}], 17);
+                          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                            maxZoom: 20
+                          }).addTo(map);
+                          const icon = L.divIcon({
+                            html: '<div style="width:14px;height:14px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(59,130,246,0.3)"></div>',
+                            iconSize: [20, 20],
+                            iconAnchor: [10, 10],
+                            className: ''
+                          });
+                          L.marker([${placeInfo.latitude}, ${placeInfo.longitude}], { icon }).addTo(map);
+                        </script>
+                      </body>
+                      </html>
+                    `}
+                    style={{ width: '100%', height: '200px', border: 'none', display: 'block' }}
+                  />
+                  {/* Map Expand Overlay Button */}
+                  <button 
+                    type="button"
+                    onClick={() => openExternalUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schedule.place + ' ' + schedule.location)}`)}
+                    style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      zIndex: 1000
+                    }}
+                  >
+                    Expand ↗
+                  </button>
+                  {/* Map info banner overlay */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    left: '12px',
+                    right: '12px',
+                    background: 'rgba(15, 23, 42, 0.85)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    zIndex: 1000
+                  }}>
+                    {imageUrl && (
+                      <img src={imageUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        {schedule.place}
+                      </div>
+                      <div style={{ fontSize: '9px', color: 'var(--text-secondary)', display: 'flex', gap: '6px' }}>
+                        <span>★ {placeInfo.rating || '4.0'}</span>
+                        <span>•</span>
+                        <span>{placeInfo.category || 'Location'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Photo Gallery / Cover Image */}
+              {placeInfo.images && placeInfo.images.length > 0 ? (
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '6px' }}>
+                  {placeInfo.images.map((imgUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      referrerPolicy="no-referrer"
+                      alt={`Location view ${idx + 1}`}
+                      style={{ width: '120px', height: '80px', objectFit: 'cover', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  ))}
+                </div>
+              ) : imageUrl && !loadingImage ? (
+                /* Fallback: show the single cover image full-width */
+                <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <img
+                    src={imageUrl}
+                    referrerPolicy="no-referrer"
+                    alt={schedule.place}
+                    style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                  />
+                </div>
+              ) : null}
+
+              {/* Loader placeholder */}
+              {loadingImage && (
+                <div className="shimmer-bg" style={{ height: '140px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Analyzing place details...</span>
+                </div>
+              )}
+
+              {/* 3. ChatGPT-like Place Intelligence Summary */}
+              {placeInfo.aiSummary && !loadingImage ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {/* Paragraph Summary introduction */}
+                  <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#f1f5f9', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid rgba(255, 255, 255, 0.03)', padding: '12px 14px', borderRadius: '12px' }}>
+                    {placeInfo.aiSummary.chatgptSummary}
+                    {placeInfo.aiSummary.summarySource && (
+                      <span style={{ 
+                        fontSize: '9px', 
+                        background: 'rgba(139, 92, 246, 0.15)', 
+                        color: '#c084fc', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px', 
+                        marginLeft: '8px', 
+                        fontWeight: 700,
+                        textTransform: 'uppercase'
+                      }}>
+                        {placeInfo.aiSummary.summarySource}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Location Address */}
+                  {resolvedAddress && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📍 Location</div>
+                      <div style={{ fontSize: '12px', color: '#cbd5e1', paddingLeft: '4px', lineHeight: 1.5 }}>
+                        <strong>{schedule.place}</strong>
+                        <br />
+                        <span style={{ color: 'var(--text-secondary)' }}>{resolvedAddress}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Features highlights */}
+                  {placeInfo.aiSummary.specialFeatures && placeInfo.aiSummary.specialFeatures.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>🦖 What makes it special</div>
+                      <ul style={{ paddingLeft: '16px', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {placeInfo.aiSummary.specialFeatures.map((feat, idx) => (
+                          <li key={idx} style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.5 }}>
+                            {feat.text}
+                            {feat.source && (
+                              <span style={{ 
+                                fontSize: '8px', 
+                                background: 'rgba(255,255,255,0.06)', 
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                color: 'var(--text-secondary)', 
+                                padding: '1px 5px', 
+                                borderRadius: '4px', 
+                                marginLeft: '6px',
+                                display: 'inline-block',
+                                verticalAlign: 'middle'
+                              }}>
+                                {feat.source}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Opening Hours */}
+                  {placeInfo.aiSummary.openingHours && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>⏰ Opening Hours</div>
+                      <div style={{ fontSize: '12px', color: '#cbd5e1', paddingLeft: '4px' }}>
+                        {placeInfo.aiSummary.openingHours}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Price */}
+                  {placeInfo.aiSummary.priceRange && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>💰 Price Range</div>
+                      <div style={{ fontSize: '12px', color: '#cbd5e1', paddingLeft: '4px', lineHeight: 1.4 }}>
+                        {placeInfo.aiSummary.priceRange}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Good For Tags */}
+                  {placeInfo.aiSummary.goodFor && placeInfo.aiSummary.goodFor.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Perfect if you want</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {placeInfo.aiSummary.goodFor.map((tag, idx) => (
+                          <span key={idx} style={{ fontSize: '10px', background: 'rgba(16, 185, 129, 0.1)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.15)', padding: '3px 8px', borderRadius: '20px', fontWeight: 600 }}>
+                            ✓ {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Fallback layout if AI summary is not generated yet (backward compatible) */
+                !loadingImage && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {schedule.location && !schedule.location.includes('google.com/calendar/event') && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Verified Location</div>
+                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', color: 'white', fontSize: '13px', lineHeight: 1.5 }}>
+                            <MapPin size={16} style={{ color: 'var(--brand-primary)', flexShrink: 0, marginTop: '2px' }} />
+                            <span style={{ wordBreak: 'break-all' }}>{schedule.location}</span>
+                          </div>
+                          <a 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const mapUrl = schedule.location.startsWith('http') ? schedule.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schedule.place + ' ' + schedule.location)}`;
+                              openExternalUrl(mapUrl);
+                            }}
+                            style={{ alignSelf: 'flex-start', fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600 }}
+                          >
+                            Open in Google Maps ↗
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
+                    {placeInfo.summary && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>About this Place</div>
+                        <div style={{ fontStyle: 'italic', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px' }}>
+                          "{placeInfo.summary}"
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+
+              {/* Website and Phone Actions (Always visible) */}
+              {(placeInfo.website || placeInfo.phone) && !loadingImage && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+                  {placeInfo.website && (
+                    <a 
+                      href="#" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openExternalUrl(placeInfo.website);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '10px 16px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        transition: 'background 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                    >
+                      <Globe size={14} /> Visit Website
+                    </a>
+                  )}
+                  {placeInfo.phone && (
+                    <a 
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const cleanPhone = placeInfo.phone.replace(/[^\d+ ]/g, '').trim();
+                        openExternalUrl(`tel:${cleanPhone}`);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        padding: '10px 16px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        transition: 'background 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
+                    >
+                      <Send size={14} /> Call {placeInfo.phone.replace(/[^\d+ ]/g, '').trim()}
                     </a>
                   )}
                 </div>
-              </div>
+              )}
             </div>
-          )}
-
-          {(schedule.reviewLearned || schedule.reviewNotes) && (
-            <div className="detail-group" style={{ borderColor: 'rgba(16, 185, 129, 0.3)', background: 'rgba(16, 185, 129, 0.04)' }}>
-              <div className="detail-row">
-                <div className="detail-icon"><CheckCircle size={16} color="var(--color-success)" /></div>
-                <div className="detail-content">
-                  <div className="detail-label" style={{ color: 'var(--color-success)' }}>Review</div>
-                  {schedule.reviewLearned && <div className="detail-value" style={{ marginBottom: '8px' }}>{schedule.reviewLearned}</div>}
-                  {schedule.reviewNotes && <div className="detail-value" style={{ fontStyle: 'italic', opacity: 0.8 }}>"{schedule.reviewNotes}"</div>}
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         <div style={{
@@ -445,6 +1014,145 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [confirmAction, setConfirmAction] = useState(null);
+  const [placeImage, setPlaceImage] = useState(null);
+  const [searchingMaps, setSearchingMaps] = useState(false);
+  const [mapQuery, setMapQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  
+  const [placeSummary, setPlaceSummary] = useState('');
+  const [placeRating, setPlaceRating] = useState('');
+  const [placeCategory, setPlaceCategory] = useState('');
+  const [placeWebsite, setPlaceWebsite] = useState('');
+  const [placePhone, setPlacePhone] = useState('');
+
+  const [coords, setCoords] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [resolvingDetails, setResolvingDetails] = useState(false);
+
+  const resolveFullPlaceDetails = async (res) => {
+    setResolvingDetails(true);
+    try {
+      const response = await fetch('/api/places/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: `${res.title} ${res.address}`,
+          lat: coords?.lat,
+          lng: coords?.lng
+        })
+      });
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const fullRes = data.results[0];
+        setPlace(fullRes.title);
+        setLocation(fullRes.address);
+        setPlaceImage(fullRes.image);
+        setPlaceSummary(fullRes.summary || '');
+        setPlaceRating(fullRes.rating || '');
+        setPlaceCategory(fullRes.category || '');
+        setPlaceWebsite(fullRes.website || '');
+        setPlacePhone(fullRes.phone || '');
+        showMessage('Full place details resolved!', 'success');
+      } else {
+        setPlace(res.title);
+        setLocation(res.address);
+        setPlaceImage(res.image);
+        setPlaceSummary(res.summary || '');
+        setPlaceRating(res.rating || '');
+        setPlaceCategory(res.category || '');
+        setPlaceWebsite(res.website || '');
+        setPlacePhone(res.phone || '');
+        showMessage('Location selected.', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      setPlace(res.title);
+      setLocation(res.address);
+      setPlaceImage(res.image);
+      setPlaceSummary(res.summary || '');
+      setPlaceRating(res.rating || '');
+      setPlaceCategory(res.category || '');
+      setPlaceWebsite(res.website || '');
+      setPlacePhone(res.phone || '');
+      showMessage('Location selected.', 'success');
+    } finally {
+      setResolvingDetails(false);
+    }
+  };
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      showMessage('Geolocation is not supported by your client.', 'info');
+      return;
+    }
+    setLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setLoadingLocation(false);
+        showMessage('Current location acquired!', 'success');
+      },
+      (error) => {
+        setLoadingLocation(false);
+        console.warn("Geolocation permission error:", error);
+        showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      requestLocation();
+    }
+  }, [isOpen]);
+
+  const handleMapSearch = async () => {
+    if (!mapQuery.trim()) return;
+    setSearchingMaps(true);
+    setSearchResults([]);
+    try {
+      const response = await fetch('/api/places/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: mapQuery,
+          lat: coords?.lat,
+          lng: coords?.lng
+        })
+      });
+      const data = await response.json();
+      if (data.error) {
+        showMessage(data.message || data.error, 'error');
+      } else {
+        const results = data.results || [];
+        setSearchResults(results);
+        if (results.length === 1) {
+          const item = results[0];
+          setPlace(item.title);
+          setLocation(item.address);
+          setPlaceImage(item.image);
+          setPlaceSummary(item.summary || '');
+          setPlaceRating(item.rating || '');
+          setPlaceCategory(item.category || '');
+          setPlaceWebsite(item.website || '');
+          setPlacePhone(item.phone || '');
+          showMessage('Location loaded!', 'success');
+        } else if (results.length > 1) {
+          showMessage(`Found ${results.length} matches! Choose one from the list.`, 'success');
+        } else {
+          showMessage('No matches found on Google Maps.', 'info');
+        }
+      }
+    } catch (err) {
+      showMessage('Failed to connect to Google Maps: ' + err.message, 'error');
+    } finally {
+      setSearchingMaps(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -452,6 +1160,8 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
       showMessage('Select a class context first!', 'error');
       return;
     }
+
+    const dateTime = new Date(`${date}T${time || '00:00'}`);
 
     // Conflict check
     const conflict = schedules.find(s => {
@@ -467,18 +1177,19 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         message: `⚠️ Conflict: "${conflict.place}" at this time. Add anyway?`,
         onConfirm: async () => {
           setConfirmAction(null);
-          await proceedCreate(dateTime, allClassParticipants);
+          await proceedCreate(dateTime);
         }
       });
       return;
     }
 
-    await proceedCreate(dateTime, allClassParticipants);
+    await proceedCreate(dateTime);
   };
 
-  const proceedCreate = async (dateTime, allClassParticipants) => {
+  const proceedCreate = async (dateTime) => {
     try {
       const classSnap = await getDoc(doc(db, 'classes', selectedClassContext));
+      const allClassParticipants = classSnap.exists() ? (classSnap.data().participants || []) : [];
       const scheduleData = {
         userId: currentUser.uid,
         userEmail: currentUser.email.toLowerCase(),
@@ -488,6 +1199,12 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         place,
         location,
         notes,
+        placeImage: placeImage || null,
+        placeSummary: placeSummary || null,
+        placeRating: placeRating || null,
+        placeCategory: placeCategory || null,
+        placeWebsite: placeWebsite || null,
+        placePhone: placePhone || null,
         participants: allClassParticipants,
         createdAt: Timestamp.now(),
         status: 'upcoming'
@@ -519,6 +1236,14 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
       setPlace('');
       setLocation('');
       setNotes('');
+      setPlaceImage(null);
+      setMapQuery('');
+      setSearchResults([]);
+      setPlaceSummary('');
+      setPlaceRating('');
+      setPlaceCategory('');
+      setPlaceWebsite('');
+      setPlacePhone('');
       showMessage('Event created successfully!', 'success');
       onClose();
     } catch (err) {
@@ -527,40 +1252,184 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
   };
 
   return (
-    <> <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="500px">
+    <>
+      <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="850px">
         <div className="modal-header">
           <h3>Create New Event</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="modal-body">
-          <form onSubmit={handleSubmit} className="create-event-form">
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Date</label>
-                <DatePicker required value={date} onChange={setDate} />
+        <div className="modal-body" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap' }}>
+            
+            {/* Left Column: Form details */}
+            <form onSubmit={handleSubmit} style={{ flex: '1.2', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Date</label>
+                  <DatePicker required value={date} onChange={setDate} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>Time</label>
+                  <input type="time" value={time} onChange={e => setTime(e.target.value)} />
+                </div>
               </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label>Time</label>
-                <input type="time" value={time} onChange={e => setTime(e.target.value)} />
+              
+              <div className="form-group">
+                <label>Event Name / Title</label>
+                <input type="text" placeholder="e.g. Mathematics 101" required value={place} onChange={e => setPlace(e.target.value)} />
               </div>
+
+              <div className="form-group">
+                <label>Location / Address</label>
+                <input type="text" placeholder="Room number, Zoom link, or address" value={location} onChange={e => setLocation(e.target.value)} />
+              </div>
+
+              <div className="form-group">
+                <label>Notes</label>
+                <textarea rows="3" placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)} style={{ resize: 'none' }}></textarea>
+              </div>
+
+              <AsyncButton actionFn={async () => {
+                if(!date || !place) throw new Error('Missing fields');
+                await handleSubmit({preventDefault: () => {}});
+              }} className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Create Event</AsyncButton>
+            </form>
+
+            {/* Right Column: Google Maps Search */}
+            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '28px' }}>
+              <div className="section-title" style={{ fontSize: '13px', color: 'var(--brand-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Search size={14} /> Google Maps Places
+              </div>
+
+               {/* Map search input */}
+               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                 <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                   <input 
+                     type="text" 
+                     placeholder="Search place name..." 
+                     value={mapQuery}
+                     onChange={e => setMapQuery(e.target.value)}
+                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleMapSearch(); } }}
+                     style={{ flex: 1, paddingRight: '36px' }}
+                   />
+                   <button
+                     type="button"
+                     onClick={requestLocation}
+                     disabled={loadingLocation}
+                     title={coords ? "Location active - Click to refresh" : "Request location permission"}
+                     style={{
+                       position: 'absolute',
+                       right: '8px',
+                       top: '50%',
+                       transform: 'translateY(-50%)',
+                       background: 'none',
+                       border: 'none',
+                       color: coords ? 'var(--color-success)' : 'var(--text-secondary)',
+                       cursor: 'pointer',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       opacity: loadingLocation ? 0.5 : 1,
+                       transition: 'color 0.2s'
+                     }}
+                   >
+                     <MapPin size={16} fill={coords ? 'rgba(16, 185, 129, 0.2)' : 'none'} style={{ animation: loadingLocation ? 'spin 1s linear infinite' : 'none' }} />
+                   </button>
+                 </div>
+                 <button 
+                   type="button" 
+                   onClick={handleMapSearch}
+                   disabled={searchingMaps}
+                   style={{
+                     padding: '0 16px',
+                     background: 'rgba(255,255,255,0.05)',
+                     border: '1px solid rgba(255,255,255,0.08)',
+                     borderRadius: '8px',
+                     color: 'white',
+                     fontSize: '13px',
+                     fontWeight: 600,
+                     cursor: 'pointer'
+                   }}
+                >
+                  {searchingMaps ? '...' : 'Search'}
+                </button>
+              </div>
+
+               {/* Search Results list */}
+               {searchResults.length > 0 && !resolvingDetails && (
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Select a Match:</div>
+                   {searchResults.map((res, idx) => (
+                     <div 
+                       key={idx}
+                        onClick={() => resolveFullPlaceDetails(res)}
+                       style={{
+                         padding: '10px',
+                         background: 'rgba(255,255,255,0.02)',
+                         border: '1px solid rgba(255,255,255,0.04)',
+                         borderRadius: '8px',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s',
+                         display: 'flex',
+                         gap: '10px',
+                         alignItems: 'center'
+                       }}
+                       onMouseEnter={e => {
+                         e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                         e.currentTarget.style.borderColor = 'var(--brand-primary)';
+                       }}
+                       onMouseLeave={e => {
+                         e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                         e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+                       }}
+                     >
+                       {res.image && (
+                         <img src={res.image} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} alt="" />
+                       )}
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                         <div style={{ fontSize: '13px', fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</div>
+                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.address}</div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+ 
+               <ScrapeProgressBar isSearching={searchingMaps || resolvingDetails} />
+
+              {/* Selected Image Card */}
+              {placeImage && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Selected Photo:</div>
+                  <div style={{ position: 'relative', width: '100%', height: '140px', borderRadius: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <img src={placeImage} referrerPolicy="no-referrer" alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setPlaceImage(null)} />
+                    <button 
+                      type="button" 
+                      onClick={() => setPlaceImage(null)}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.6)',
+                        border: 'none',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="form-group">
-              <label>Title</label>
-              <input type="text" placeholder="e.g. Mathematics 101" required value={place} onChange={e => setPlace(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Location</label>
-              <input type="text" placeholder="Room number or Zoom link" value={location} onChange={e => setLocation(e.target.value)} />
-            </div>
-            <div className="form-group">
-              <label>Notes</label>
-              <textarea rows="3" placeholder="Optional notes..." value={notes} onChange={e => setNotes(e.target.value)}></textarea>
-            </div>
-            <AsyncButton actionFn={async () => {
-              if(!date || !place) throw new Error('Missing fields');
-              await handleSubmit({preventDefault: () => {}});
-            }} className="btn btn-primary btn-full" style={{ marginTop: '8px' }}>Create Event</AsyncButton>
-          </form>
+
+          </div>
         </div>
       </ModalWrapper>
       <ConfirmModal
@@ -585,6 +1454,101 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
   const [assignmentDue, setAssignmentDue] = useState('');
   const [reviewLearned, setReviewLearned] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
+  const [placeImage, setPlaceImage] = useState(null);
+  const [searchingMaps, setSearchingMaps] = useState(false);
+  const [mapQuery, setMapQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  
+  const [placeSummary, setPlaceSummary] = useState('');
+  const [placeRating, setPlaceRating] = useState('');
+  const [placeCategory, setPlaceCategory] = useState('');
+  const [placeWebsite, setPlaceWebsite] = useState('');
+  const [placePhone, setPlacePhone] = useState('');
+
+  const [coords, setCoords] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [resolvingDetails, setResolvingDetails] = useState(false);
+
+  const resolveFullPlaceDetails = async (res) => {
+    setResolvingDetails(true);
+    try {
+      const response = await fetch('/api/places/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: `${res.title} ${res.address}`,
+          lat: coords?.lat,
+          lng: coords?.lng
+        })
+      });
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const fullRes = data.results[0];
+        setPlace(fullRes.title);
+        setLocation(fullRes.address);
+        setPlaceImage(fullRes.image);
+        setPlaceSummary(fullRes.summary || '');
+        setPlaceRating(fullRes.rating || '');
+        setPlaceCategory(fullRes.category || '');
+        setPlaceWebsite(fullRes.website || '');
+        setPlacePhone(fullRes.phone || '');
+        showMessage('Full place details resolved!', 'success');
+      } else {
+        setPlace(res.title);
+        setLocation(res.address);
+        setPlaceImage(res.image);
+        setPlaceSummary(res.summary || '');
+        setPlaceRating(res.rating || '');
+        setPlaceCategory(res.category || '');
+        setPlaceWebsite(res.website || '');
+        setPlacePhone(res.phone || '');
+        showMessage('Location selected.', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      setPlace(res.title);
+      setLocation(res.address);
+      setPlaceImage(res.image);
+      setPlaceSummary(res.summary || '');
+      setPlaceRating(res.rating || '');
+      setPlaceCategory(res.category || '');
+      setPlaceWebsite(res.website || '');
+      setPlacePhone(res.phone || '');
+      showMessage('Location selected.', 'success');
+    } finally {
+      setResolvingDetails(false);
+    }
+  };
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      showMessage('Geolocation is not supported by your client.', 'info');
+      return;
+    }
+    setLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+        setLoadingLocation(false);
+        showMessage('Current location acquired!', 'success');
+      },
+      (error) => {
+        setLoadingLocation(false);
+        console.warn("Geolocation permission error:", error);
+        showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      requestLocation();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (schedule) {
@@ -603,10 +1567,62 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
       setAssignmentDue(schedule.assignmentDue || '');
       setReviewLearned(schedule.reviewLearned || '');
       setReviewNotes(schedule.reviewNotes || '');
+      setPlaceImage(schedule.placeImage || null);
+      setMapQuery('');
+      setSearchResults([]);
+      setPlaceSummary(schedule.placeSummary || '');
+      setPlaceRating(schedule.placeRating || '');
+      setPlaceCategory(schedule.placeCategory || '');
+      setPlaceWebsite(schedule.placeWebsite || '');
+      setPlacePhone(schedule.placePhone || '');
     }
   }, [schedule, isOpen]);
 
   if (!schedule) return null;
+
+  const handleMapSearch = async () => {
+    if (!mapQuery.trim()) return;
+    setSearchingMaps(true);
+    setSearchResults([]);
+    try {
+      const response = await fetch('/api/places/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: mapQuery,
+          lat: coords?.lat,
+          lng: coords?.lng
+        })
+      });
+      const data = await response.json();
+      if (data.error) {
+        showMessage(data.message || data.error, 'error');
+      } else {
+        const results = data.results || [];
+        setSearchResults(results);
+        if (results.length === 1) {
+          const item = results[0];
+          setPlace(item.title);
+          setLocation(item.address);
+          setPlaceImage(item.image);
+          setPlaceSummary(item.summary || '');
+          setPlaceRating(item.rating || '');
+          setPlaceCategory(item.category || '');
+          setPlaceWebsite(item.website || '');
+          setPlacePhone(item.phone || '');
+          showMessage('Location loaded!', 'success');
+        } else if (results.length > 1) {
+          showMessage(`Found ${results.length} matches! Choose one from the list.`, 'success');
+        } else {
+          showMessage('No matches found on Google Maps.', 'info');
+        }
+      }
+    } catch (err) {
+      showMessage('Failed to connect to Google Maps: ' + err.message, 'error');
+    } finally {
+      setSearchingMaps(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -616,6 +1632,12 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
         place,
         location,
         notes,
+        placeImage: placeImage || null,
+        placeSummary: placeSummary || null,
+        placeRating: placeRating || null,
+        placeCategory: placeCategory || null,
+        placeWebsite: placeWebsite || null,
+        placePhone: placePhone || null,
         date: Timestamp.fromDate(dateTime),
         assignmentTask: assignmentTask || null,
         assignmentLink: assignmentLink || null,
@@ -633,16 +1655,18 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
   };
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="700px">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="1050px">
         <div className="modal-header">
           <h3>Edit Event</h3>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="modal-body">
-          <form onSubmit={handleSubmit} className="horizontal-form">
-            <div className="edit-col-left">
-              <div className="section-title" style={{ marginBottom: '12px', fontSize: '13px', color: 'var(--brand-primary)', fontWeight: 600 }}>Event Details</div>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+        <div className="modal-body" style={{ padding: '24px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+            
+            {/* Column 1: Details */}
+            <div style={{ flex: '1.2', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="section-title" style={{ marginBottom: '4px', fontSize: '13px', color: 'var(--brand-primary)', fontWeight: 600 }}>Event Details</div>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Date</label>
                   <DatePicker required value={date} onChange={setDate} />
@@ -662,16 +1686,148 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
               </div>
               <div className="form-group">
                 <label>Notes</label>
-                <textarea rows="3" placeholder="Notes..." value={notes} onChange={e => setNotes(e.target.value)}></textarea>
+                <textarea rows="3" placeholder="Notes..." value={notes} onChange={e => setNotes(e.target.value)} style={{ resize: 'none' }}></textarea>
               </div>
             </div>
-            <div className="edit-col-right">
-              <div className="section-title" style={{ marginBottom: '12px', fontSize: '13px', color: 'var(--color-warning)', fontWeight: 600 }}>Tasks & Review</div>
+
+            {/* Column 2: Google Maps Search */}
+            <div style={{ flex: '1', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '14px', borderLeft: '1px solid rgba(255,255,255,0.06)', borderRight: '1px solid rgba(255,255,255,0.06)', paddingLeft: '24px', paddingRight: '24px' }}>
+              <div className="section-title" style={{ marginBottom: '4px', fontSize: '13px', color: 'var(--brand-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Search size={14} /> Google Maps
+              </div>
+
+              {/* Map search input */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Search place name..." 
+                    value={mapQuery}
+                    onChange={e => setMapQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleMapSearch(); } }}
+                    style={{ flex: 1, paddingRight: '36px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={requestLocation}
+                    disabled={loadingLocation}
+                    title={coords ? "Location active - Click to refresh" : "Request location permission"}
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: coords ? 'var(--color-success)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: loadingLocation ? 0.5 : 1,
+                      transition: 'color 0.2s'
+                    }}
+                  >
+                    <MapPin size={16} fill={coords ? 'rgba(16, 185, 129, 0.2)' : 'none'} style={{ animation: loadingLocation ? 'spin 1s linear infinite' : 'none' }} />
+                  </button>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={handleMapSearch}
+                  disabled={searchingMaps}
+                  style={{
+                    padding: '0 12px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '8px',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {searchingMaps ? '...' : 'Search'}
+                </button>
+              </div>
+
+               {/* Search Results list */}
+               {searchResults.length > 0 && !resolvingDetails && (
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+                   {searchResults.map((res, idx) => (
+                     <div 
+                       key={idx}
+                       onClick={() => resolveFullPlaceDetails(res)}
+                       style={{
+                         padding: '10px',
+                         background: 'rgba(255,255,255,0.02)',
+                         border: '1px solid rgba(255,255,255,0.04)',
+                         borderRadius: '8px',
+                         cursor: 'pointer',
+                         transition: 'all 0.2s',
+                         display: 'flex',
+                         gap: '10px',
+                         alignItems: 'center'
+                       }}
+                       onMouseEnter={e => {
+                         e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                         e.currentTarget.style.borderColor = 'var(--brand-primary)';
+                       }}
+                       onMouseLeave={e => {
+                         e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                         e.currentTarget.style.borderColor = 'rgba(255,255,255,0.04)';
+                       }}
+                     >
+                       {res.image && (
+                         <img src={res.image} style={{ width: '35px', height: '35px', borderRadius: '4px', objectFit: 'cover' }} alt="" />
+                       )}
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1, minWidth: 0 }}>
+                         <div style={{ fontSize: '12px', fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</div>
+                         <div style={{ fontSize: '10px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.address}</div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+ 
+               <ScrapeProgressBar isSearching={searchingMaps || resolvingDetails} />
+
+              {/* Selected Image Card */}
+              {placeImage && (
+                <div style={{ position: 'relative', width: '100%', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <img src={placeImage} referrerPolicy="no-referrer" alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setPlaceImage(null)} />
+                  <button 
+                    type="button" 
+                    onClick={() => setPlaceImage(null)}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.6)',
+                      border: 'none',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Column 3: Tasks & Review */}
+            <div style={{ flex: '1', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="section-title" style={{ marginBottom: '4px', fontSize: '13px', color: 'var(--color-warning)', fontWeight: 600 }}>Tasks & Review</div>
               <div className="form-group">
                 <label>Assignment</label>
                 <input type="text" placeholder="Task description" value={assignmentTask} onChange={e => setAssignmentTask(e.target.value)} />
               </div>
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <div className="form-group" style={{ flex: 1 }}>
                   <input type="text" placeholder="Resource link" value={assignmentLink} onChange={e => setAssignmentLink(e.target.value)} />
                 </div>
@@ -679,20 +1835,21 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
                   <DatePicker title="Due date" value={assignmentDue} onChange={setAssignmentDue} align="right" placeholder="" />
                 </div>
               </div>
-              <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '16px' }}>
+              <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '12px' }}>
                 <div className="form-group">
-                  <label style={{ color: 'var(--color-success)' }}>Review</label>
+                  <label style={{ color: 'var(--color-success)', marginBottom: '4px' }}>Review</label>
                   <textarea rows="2" placeholder="What was learned?" value={reviewLearned} onChange={e => setReviewLearned(e.target.value)}></textarea>
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <textarea rows="2" placeholder="Additional review notes" value={reviewNotes} onChange={e => setReviewNotes(e.target.value)}></textarea>
                 </div>
               </div>
             </div>
+
             <AsyncButton actionFn={async () => {
               if(!date || !time || !place) throw new Error('Missing fields');
               await handleSubmit({preventDefault: () => {}});
-            }} className="btn btn-primary btn-full" style={{ gridColumn: '1 / -1', marginTop: '12px' }}>Save Changes</AsyncButton>
+            }} className="btn btn-primary btn-full" style={{ width: '100%', marginTop: '12px' }}>Save Changes</AsyncButton>
           </form>
         </div>
       </ModalWrapper>

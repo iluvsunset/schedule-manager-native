@@ -25,9 +25,31 @@ export default function UpdateModal() {
           setIsOpen(true);
         } else {
           console.log('No updates found.');
+          // Fallback to mock update in dev mode for simulation
+          if (import.meta.env.DEV) {
+            console.log('Simulating update in development mode...');
+            setUpdateInfo({
+              isMock: true,
+              version: '0.1.2',
+              currentVersion: '0.1.1',
+              body: 'Added integrated Profile Settings page, user-custom timezone selectors, location-based cron reminders, custom glassmorphic dropdown list options, and fluid shimmer loading animations.'
+            });
+            setIsOpen(true);
+          }
         }
       } catch (err) {
         console.error('Failed to check for updates:', err);
+        // Fallback to mock update in dev mode on error
+        if (import.meta.env.DEV) {
+          console.log('Simulating update in development mode due to error...');
+          setUpdateInfo({
+            isMock: true,
+            version: '0.1.2',
+            currentVersion: '0.1.1',
+            body: 'Added integrated Profile Settings page, user-custom timezone selectors, location-based cron reminders, custom glassmorphic dropdown list options, and fluid shimmer loading animations.'
+          });
+          setIsOpen(true);
+        }
       }
     };
 
@@ -42,8 +64,29 @@ export default function UpdateModal() {
     setStatus('downloading');
     setProgress(0);
     setBytesDownloaded(0);
-    let downloadedSum = 0;
 
+    if (updateInfo.isMock) {
+      const total = 12.4 * 1024 * 1024; // 12.4 MB mock size
+      setTotalBytes(total);
+      
+      let downloadedSum = 0;
+      const interval = setInterval(() => {
+        const chunk = Math.floor(Math.random() * (800 - 200) + 200) * 1024;
+        downloadedSum = Math.min(downloadedSum + chunk, total);
+        setBytesDownloaded(downloadedSum);
+        
+        const percent = Math.min(Math.round((downloadedSum / total) * 100), 100);
+        setProgress(percent);
+        
+        if (downloadedSum >= total) {
+          clearInterval(interval);
+          setStatus('completed');
+        }
+      }, 150);
+      return;
+    }
+
+    let downloadedSum = 0;
     try {
       await updateInfo.downloadAndInstall((event) => {
         switch (event.event) {
@@ -81,6 +124,15 @@ export default function UpdateModal() {
 
   const handleRelaunch = async () => {
     try {
+      if (updateInfo.isMock) {
+        console.log('Simulated restart!');
+        setIsOpen(false);
+        setStatus('idle');
+        setProgress(0);
+        setBytesDownloaded(0);
+        showMessage('Simulated application update/restart successfully!', 'success');
+        return;
+      }
       await relaunch();
     } catch (err) {
       console.error('Relaunch failed:', err);

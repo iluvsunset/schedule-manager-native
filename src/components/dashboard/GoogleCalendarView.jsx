@@ -273,6 +273,8 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
           date: Timestamp.fromDate(start),
           place: event.summary || 'Google Calendar Event',
           location: event.location || event.hangoutLink || event.htmlLink || '',
+          originalSummary: event.summary || 'Google Calendar Event',
+          gcalLocation: event.location || event.hangoutLink || event.htmlLink || '',
           notes: additionalNotes,
           participants: participants,
           createdAt: Timestamp.now(),

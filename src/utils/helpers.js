@@ -46,11 +46,32 @@ export async function sendDynamicEmail(currentUser, to_email, to_name, subject, 
     const emailsEnabled = settingsSnap.exists() ? (settingsSnap.data().emailEnabled !== false) : true;
     if (!emailsEnabled || !currentUser) return false;
 
+    // Fetch user settings/preferences to verify if they have overridden email delivery
+    const userSnap = await getDoc(doc(db, 'allowed_users', to_email.toLowerCase()));
+    if (userSnap.exists()) {
+      const userData = userSnap.data();
+      
+      // Global user preference override: if user explicitly turned off notifications
+      if (userData.emailNotificationsEnabled === false) {
+        console.log(`Email blocked by user preference (global notifications disabled): ${to_email}`);
+        return false;
+      }
+      
+      // Category specific overrides
+      if (email_type === 'schedule_reminder' && userData.emailRemindersEnabled === false) {
+        console.log(`Email blocked by user preference (reminders disabled): ${to_email}`);
+        return false;
+      }
+      if (email_type === 'schedule_created' && userData.emailClassUpdatesEnabled === false) {
+        console.log(`Email blocked by user preference (class updates disabled): ${to_email}`);
+        return false;
+      }
+    }
+
     // Check custom rules
     const rulesSnap = await getDoc(doc(db, 'system_settings', 'mail_rules'));
     if (rulesSnap.exists()) {
       const rules = rulesSnap.data();
-      const userSnap = await getDoc(doc(db, 'allowed_users', to_email.toLowerCase()));
       const role = userSnap.exists() ? userSnap.data().role : 'student';
       const ruleKey = `${email_type}_${role}`;
       if (rules[ruleKey] === false) {

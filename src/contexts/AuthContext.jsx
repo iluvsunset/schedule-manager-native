@@ -3,6 +3,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndP
 import { doc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { auth, db, provider } from '../firebase';
 import { openGCalAuth, openNativeGoogleAuth, isNative, isTauri, isDesktopTauri, isCapacitor } from '../platform';
+import { showMessage } from '../utils/helpers';
 
 const AuthContext = createContext();
 
@@ -77,6 +78,8 @@ export function AuthProvider({ children }) {
   const [dynamicOverrides, setDynamicOverrides] = useState({});
   const [isGcalConnected, setIsGcalConnected] = useState(false);
 
+  const sessionStartTime = useRef(Date.now());
+
   // Track the latest auth callback to prevent stale/duplicate Firestore calls.
   // getIdToken(true) can re-trigger onAuthStateChanged, causing two async
   // callbacks to race and open duplicate WebChannels.
@@ -134,11 +137,13 @@ export function AuthProvider({ children }) {
             }
             
             if (role) {
+              sessionStartTime.current = Date.now();
               setCurrentUser(user);
               setUserRole(role);
               setUserUsername(username);
               setUserDisplayName(displayName);
             } else {
+              showMessage('Access Denied: Your account is not authorized to use this application.', 'error');
               await signOut(auth);
               setCurrentUser(null);
               setUserRole(null);
@@ -172,6 +177,63 @@ export function AuthProvider({ children }) {
       unsubscribeAuth();
     };
   }, []);
+
+  // 1.5 Real-time Role & Access Revocation Listener
+  const prevRoleRef = useRef(userRole);
+  useEffect(() => { prevRoleRef.current = userRole; }, [userRole]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const email = currentUser.email.toLowerCase();
+    const unsubUserDoc = onSnapshot(
+      doc(db, 'allowed_users', email),
+      (snap) => {
+        if (!snap.exists()) {
+          // Document deleted -> access revoked
+          showMessage('Your access has been revoked by an administrator.', 'error');
+          signOut(auth);
+          return;
+        }
+        
+        const data = snap.data();
+        
+        // Check disabled status (soft ban)
+        if (data.status === 'disabled') {
+          showMessage('Your account has been disabled by an administrator.', 'error');
+          signOut(auth);
+          return;
+        }
+        
+        // Check force logout
+        if (data.forceLogoutAt) {
+          const forceTime = data.forceLogoutAt.toDate().getTime();
+          // If forceLogoutAt is newer than when this session started, log them out
+          if (forceTime > sessionStartTime.current) {
+            showMessage('Your session was terminated by an administrator.', 'error');
+            signOut(auth);
+            return;
+          }
+        }
+        
+        // Check role changes
+        let newRole = data.role ? data.role.toLowerCase().trim() : null;
+        if (email === 'bao.h0146824@gmail.com' || email === 'sunsetmyfav@gmail.com') {
+          newRole = 'it';
+        }
+        
+        if (newRole && newRole !== prevRoleRef.current) {
+          setUserRole(newRole);
+          showMessage(`Your role was updated to ${newRole}`, 'success');
+        }
+      },
+      (error) => {
+        console.warn("User doc listener failed:", error.message);
+      }
+    );
+    
+    return () => unsubUserDoc();
+  }, [currentUser]);
 
   useEffect(() => {
     if (!currentUser || !userRole) {
