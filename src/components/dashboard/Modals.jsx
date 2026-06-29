@@ -377,7 +377,10 @@ export function EventDetailModal({
                   </div>
                   <div>
                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Time</div>
-                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{date ? formatTime(date) : 'All Day'}</div>
+                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>
+                      {date ? formatTime(date) : 'All Day'}
+                      {schedule.endDate && ` - ${formatTime(schedule.endDate.toDate ? schedule.endDate.toDate() : new Date(schedule.endDate))}`}
+                    </div>
                   </div>
                 </div>
               </div>
