@@ -1010,6 +1010,7 @@ export function EventDetailModal({
 export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedules, currentUser }) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [place, setPlace] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -1190,12 +1191,14 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
     try {
       const classSnap = await getDoc(doc(db, 'classes', selectedClassContext));
       const allClassParticipants = classSnap.exists() ? (classSnap.data().participants || []) : [];
+      const endDateTime = endTime ? new Date(`${date}T${endTime}`) : null;
       const scheduleData = {
         userId: currentUser.uid,
         userEmail: currentUser.email.toLowerCase(),
         classId: selectedClassContext,
         className: classSnap.exists() ? classSnap.data().className : '',
         date: Timestamp.fromDate(dateTime),
+        endDate: endDateTime ? Timestamp.fromDate(endDateTime) : null,
         place,
         location,
         notes,
@@ -1234,6 +1237,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
 
       setDate('');
       setTime('');
+      setEndTime('');
       setPlace('');
       setLocation('');
       setNotes('');
@@ -1270,8 +1274,12 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
                   <DatePicker required value={date} onChange={setDate} />
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label>Time</label>
+                  <label>Start Time</label>
                   <input type="time" value={time} onChange={e => setTime(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label>End Time</label>
+                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
                 </div>
               </div>
               
@@ -1447,6 +1455,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
 export function EditEventModal({ isOpen, onClose, schedule }) {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const [place, setPlace] = useState('');
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
@@ -1559,6 +1568,12 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
 
       setDate(dateStr);
       setTime(timeStr);
+      if (schedule.endDate) {
+        const ed = schedule.endDate.toDate ? schedule.endDate.toDate() : new Date(schedule.endDate);
+        setEndTime(ed.toTimeString().slice(0, 5));
+      } else {
+        setEndTime('');
+      }
       setPlace(schedule.place || '');
       const loc = schedule.location || '';
       setLocation(loc.includes('google.com/calendar/event') ? '' : loc);
@@ -1629,6 +1644,7 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
     e.preventDefault();
     try {
       const dateTime = new Date(`${date}T${time}`);
+      const endDateTime = endTime ? new Date(`${date}T${endTime}`) : null;
       const update = {
         place,
         location,
@@ -1640,6 +1656,7 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
         placeWebsite: placeWebsite || null,
         placePhone: placePhone || null,
         date: Timestamp.fromDate(dateTime),
+        endDate: endDateTime ? Timestamp.fromDate(endDateTime) : null,
         assignmentTask: assignmentTask || null,
         assignmentLink: assignmentLink || null,
         assignmentDue: assignmentDue || null,
@@ -1674,8 +1691,12 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
                   <DatePicker required value={date} onChange={setDate} />
                 </div>
                 <div className="form-group" style={{ width: '110px' }}>
-                  <label>Time</label>
+                  <label>Start</label>
                   <input type="time" required value={time} onChange={e => setTime(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ width: '110px' }}>
+                  <label>End</label>
+                  <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">

@@ -66,14 +66,31 @@ module.exports = async function handler(req, res) {
       const schedule = docSnap.data();
       
       const startTime = schedule.date && typeof schedule.date.toDate === 'function' ? schedule.date.toDate() : new Date(schedule.date || Date.now());
-      const endTime = new Date(startTime.getTime() + (schedule.duration || 60) * 60000);
+      let endTime;
+      if (schedule.endDate) {
+        endTime = typeof schedule.endDate.toDate === 'function' ? schedule.endDate.toDate() : new Date(schedule.endDate);
+      } else {
+        endTime = new Date(startTime.getTime() + (schedule.duration || 60) * 60000);
+      }
+
+      // Build rich description from all DB info
+      const descParts = [];
+      if (schedule.className) descParts.push(`📚 Class: ${schedule.className}`);
+      if (schedule.notes && schedule.notes !== 'None') descParts.push(`📝 Notes: ${schedule.notes}`);
+      if (schedule.assignmentTask) descParts.push(`📋 Assignment: ${schedule.assignmentTask}`);
+      if (schedule.assignmentDue) descParts.push(`⏰ Due: ${schedule.assignmentDue}`);
+      if (schedule.assignmentLink) descParts.push(`🔗 Link: ${schedule.assignmentLink}`);
+      if (schedule.reviewLearned) descParts.push(`💡 Learned: ${schedule.reviewLearned}`);
+      if (schedule.reviewNotes) descParts.push(`📖 Review: ${schedule.reviewNotes}`);
+      descParts.push('\nManaged by Schedule Manager.');
 
       const eventPayload = {
         summary: `Class: ${schedule.place || schedule.classId}`,
-        description: `Notes: ${schedule.notes || 'None'}\n\nManaged by Schedule Manager.`,
+        description: descParts.join('\n'),
+        location: schedule.location || '',
         start: {
           dateTime: startTime.toISOString(),
-          timeZone: 'UTC', // the DB stores ISO strings
+          timeZone: 'UTC',
         },
         end: {
           dateTime: endTime.toISOString(),

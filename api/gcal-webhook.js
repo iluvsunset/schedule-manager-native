@@ -352,6 +352,7 @@ module.exports = async function handler(req, res) {
   
         const rule = rules.find(r => r.eventName.trim().toLowerCase() === summary.toLowerCase());
         const start = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date);
+        const end = event.end ? (event.end.dateTime ? new Date(event.end.dateTime) : new Date(event.end.date)) : null;
   
         if (!dupSnap.empty) {
           // UPDATE existing event
@@ -362,6 +363,7 @@ module.exports = async function handler(req, res) {
 
           const updateData = {
             date: admin.firestore.Timestamp.fromDate(start),
+            endDate: end ? admin.firestore.Timestamp.fromDate(end) : null,
             notes: event.description || data.notes || 'Automatically synced from Google Calendar',
           };
 
@@ -473,6 +475,7 @@ module.exports = async function handler(req, res) {
           classId: rule.classId,
           className: rule.className,
           date: admin.firestore.Timestamp.fromDate(start),
+          endDate: end ? admin.firestore.Timestamp.fromDate(end) : null,
           place: summary || 'Google Calendar Event',
           location: event.location || event.hangoutLink || event.htmlLink || '',
           originalSummary: summary || 'Google Calendar Event',
