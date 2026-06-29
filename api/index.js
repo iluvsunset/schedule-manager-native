@@ -18,6 +18,16 @@ module.exports = async (req, res) => {
       '/api/sync-event-gcal': require('../server/sync-event-gcal.js')
     };
 
+    // Global CORS headers for all responses
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
     const handler = routeMap[path] || routeMap[path.replace(/\/$/, '')];
 
     if (handler) {
