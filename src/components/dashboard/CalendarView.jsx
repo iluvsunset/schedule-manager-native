@@ -264,6 +264,7 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
             </motion.div>
       </AnimatePresence>
     </div>
+      </div>
 
       <AnimatePresence>
         {selectedDayEvents && (
