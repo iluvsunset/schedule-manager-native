@@ -65,7 +65,7 @@ module.exports = async function handler(req, res) {
     for (const docSnap of schedulesSnap.docs) {
       const schedule = docSnap.data();
       
-      const startTime = new Date(schedule.time);
+      const startTime = schedule.date && typeof schedule.date.toDate === 'function' ? schedule.date.toDate() : new Date(schedule.date || Date.now());
       const endTime = new Date(startTime.getTime() + (schedule.duration || 60) * 60000);
 
       const eventPayload = {
