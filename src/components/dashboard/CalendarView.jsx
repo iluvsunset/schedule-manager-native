@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Eye, Play, Check, X, Trash2, Clock, Send, Share2, Edit3, CalendarCheck } from 'lucide-react';
 import { showMessage } from '../../utils/helpers';
-import { getApiBase } from '../../platform';
+import { getApiBase, openGCalAuth } from '../../platform';
 
 export default function CalendarView({ schedules, onSelectEvent, onStart, onComplete, onDelete, onCancel, onEdit, onShare, onSendReminder }) {
   const { canEditSchedule, canDeleteSchedule, userRole, currentUser } = useAuth();
@@ -52,11 +52,8 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
       const data = await res.json();
       
       if (res.status === 401 && data.error === 'Google Calendar not connected') {
-        showMessage('Please link your Google Calendar first from the Calendar tab settings or profile.', 'error');
-        // Redirect to google auth if they want, but the current UI requires doing it from GcalView or Profile.
-        // I will trigger the native/web auth flow here for convenience.
-        const authUrl = `${getApiBase()}/api/gcal-auth?uid=${currentUser.uid}&native=false`;
-        window.location.href = authUrl;
+        showMessage('Google Calendar not linked. Opening browser to connect...', 'error');
+        await openGCalAuth(currentUser.uid);
         return;
       }
       
@@ -154,14 +151,9 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
             </svg>
           </button>
           
-          <button 
-            className="btn btn-outline" 
-            style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-            onClick={handleSyncGcal}
-            disabled={syncingGcal}
-          >
-            <CalendarCheck size={16} />
-            {syncingGcal ? 'Syncing...' : 'Sync to Google Calendar'}
+          <button className="btn btn-ghost" style={{ fontSize: '13px', gap: '6px', display: 'inline-flex', alignItems: 'center' }} onClick={handleSyncGcal} disabled={syncingGcal}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {syncingGcal ? 'Syncing...' : 'Sync to GCal'}
           </button>
         </div>
       </div>
