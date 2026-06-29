@@ -32,33 +32,54 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // 1. Find all schedules that have some GCal ID but no endDate
+    // 1. Find all schedules that have no endDate
     const allSchedules = await db.collection('schedules').get();
-    const needsBackfill = [];
+    const needsGcalFetch = [];
+    const needsDefault = [];
+
     allSchedules.forEach(doc => {
       const d = doc.data();
+      if (d.endDate) return;
+
       const hasId = d.gcalEventId || d.exportedGcalEventId || (d.gcalEventIds && Object.keys(d.gcalEventIds).length > 0);
-      if (hasId && !d.endDate) {
-        needsBackfill.push({ id: doc.id, ...d });
+      if (hasId) {
+        needsGcalFetch.push({ id: doc.id, ...d });
+      } else if (d.date) {
+        needsDefault.push({ id: doc.id, ...d });
       }
     });
 
-    if (needsBackfill.length === 0) {
+    let updated = 0;
+    let skipped = 0;
+    const errors = [];
+
+    // 1.5 Backfill default 1-hour end times for local-only Class events
+    for (const sched of needsDefault) {
+      try {
+        const startDate = sched.date.toDate ? sched.date.toDate() : new Date(sched.date);
+        const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // +1 hour
+        await db.collection('schedules').doc(sched.id).update({
+          endDate: admin.firestore.Timestamp.fromDate(endDate)
+        });
+        updated++;
+      } catch (err) {
+        errors.push({ scheduleId: sched.id, error: err.message });
+        skipped++;
+      }
+    }
+
+    if (needsGcalFetch.length === 0 && needsDefault.length === 0) {
       return res.status(200).json({ success: true, message: 'All events already have endDate!', updated: 0, skipped: 0 });
     }
 
-    // 2. Group by userId so we only auth once per user
+    // 2. Group by userId so we only auth once per user for GCal events
     const byUser = {};
-    for (const sched of needsBackfill) {
+    for (const sched of needsGcalFetch) {
       const uid = sched.userId;
       if (!uid) continue;
       if (!byUser[uid]) byUser[uid] = [];
       byUser[uid].push(sched);
     }
-
-    let updated = 0;
-    let skipped = 0;
-    const errors = [];
 
     for (const [uid, schedules] of Object.entries(byUser)) {
       try {
@@ -139,7 +160,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: `Backfill complete! Updated ${updated} events.`,
-      total: needsBackfill.length,
+      total: needsGcalFetch.length + needsDefault.length,
       updated,
       skipped,
       errors: errors.length > 0 ? errors : undefined
