@@ -70,7 +70,7 @@ function ModalWrapper({ isOpen, onClose, children, maxWidth = '500px' }) {
 
 import { doc, getDoc, addDoc, updateDoc, deleteDoc, collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { showMessage, sendDynamicEmail, formatTime, formatDate } from '../../utils/helpers';
+import { showMessage, sendDynamicEmail, formatTime, formatDate, syncGcalBackground } from '../../utils/helpers';
 import { useAuth } from '../../contexts/AuthContext';
 import { openExternalUrl } from '../../platform';
 
@@ -1210,7 +1210,8 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         status: 'upcoming'
       };
 
-      await addDoc(collection(db, 'schedules'), scheduleData);
+      const docRef = await addDoc(collection(db, 'schedules'), scheduleData);
+      syncGcalBackground(scheduleData, docRef.id, 'sync');
 
       // Send notifications to students
       const studentEmails = [];
@@ -1647,6 +1648,7 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
       };
 
       await updateDoc(doc(db, 'schedules', schedule.id), update);
+      syncGcalBackground({ ...schedule, ...update }, schedule.id, 'sync');
       showMessage('Event updated successfully!', 'success');
       onClose();
     } catch (err) {

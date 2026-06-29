@@ -161,6 +161,17 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const triggerSync = (schedule, scheduleId, action, skipEmails = []) => {
+      const host = req.headers.host;
+      if (!host) return;
+      const protocol = host.includes('localhost') ? 'http' : 'https';
+      fetch(`${protocol}://${host}/api/sync-event-gcal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedule, scheduleId, action, skipEmails })
+      }).catch(e => console.error('Webhook trigger sync error:', e));
+    };
+
     const db = admin.firestore();
     try { db.settings({ preferRest: true }); } catch (e) { }
 
@@ -285,8 +296,9 @@ module.exports = async function handler(req, res) {
           // Handle deletions
           if (!dupSnap.empty) {
             const data = dupSnap.docs[0].data();
-            for (const doc of dupSnap.docs) {
-              await doc.ref.delete();
+            for (const docSnap of dupSnap.docs) {
+              await docSnap.ref.delete();
+              triggerSync(docSnap.data(), docSnap.id, 'delete', [userEmail]);
               deletedCount++;
             }
             console.log(`Deleted cancelled GCal event ID: ${event.id}`);
@@ -377,6 +389,7 @@ module.exports = async function handler(req, res) {
           }
 
           await existingDoc.ref.update(updateData);
+          triggerSync({ ...data, ...updateData }, existingDoc.id, 'sync', [userEmail]);
           console.log(`Updated existing GCal event: ${summary}`);
           updatedCount++;
 
@@ -473,6 +486,7 @@ module.exports = async function handler(req, res) {
         };
   
         await db.collection('schedules').doc('gcal_' + event.id).set(scheduleData);
+        triggerSync(scheduleData, 'gcal_' + event.id, 'sync', [userEmail]);
         
         console.log(`Auto-shared GCal event: ${summary} to class ${rule.className}`);
         autoSharedCount++;

@@ -7,7 +7,7 @@ import {
 import { db, auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { getApiBase, getWebDomain } from '../platform';
-import { showMessage, formatTime, formatDate } from '../utils/helpers';
+import { showMessage, formatTime, formatDate, syncGcalBackground } from '../utils/helpers';
 import Topbar from '../components/layout/Topbar';
 import { ConfirmModal } from '../components/dashboard/Modals';
 import { 
@@ -253,6 +253,8 @@ export default function AdminPanel() {
                 schedUpdates.push(updateDoc(doc(db, 'schedules', sDoc.id), {
                   participants: arrayRemove(email)
                 }));
+                const updatedS = { ...s, participants: s.participants.filter(p => p !== email) };
+                syncGcalBackground(updatedS, sDoc.id, 'sync');
               }
             });
             await Promise.all(schedUpdates);
@@ -347,10 +349,12 @@ export default function AdminPanel() {
       const schedSnap = await getDocs(query(collection(db, 'schedules'), where('classId', '==', editClass.id)));
       const syncUpdates = [];
       schedSnap.forEach(sDoc => {
-        syncUpdates.push(updateDoc(doc(db, 'schedules', sDoc.id), {
+        const updateData = {
           participants: classParticipants,
           className: editClass.className
-        }));
+        };
+        syncUpdates.push(updateDoc(doc(db, 'schedules', sDoc.id), updateData));
+        syncGcalBackground({ ...sDoc.data(), ...updateData }, sDoc.id, 'sync');
       });
       if (syncUpdates.length > 0) {
         await Promise.all(syncUpdates);
@@ -418,11 +422,13 @@ export default function AdminPanel() {
             const intersection = sParts.filter(p => classParticipants.includes(p));
 
             if (intersection.length > 0) {
-              updates.push(updateDoc(doc(db, 'schedules', docSnap.id), {
+              const updateData = {
                 classId: editClass.id,
                 participants: classParticipants,
                 className: editClass.className
-              }));
+              };
+              updates.push(updateDoc(doc(db, 'schedules', docSnap.id), updateData));
+              syncGcalBackground({ ...s, ...updateData }, docSnap.id, 'sync');
               count++;
             }
           });
@@ -1091,15 +1097,17 @@ export default function AdminPanel() {
                                     value={u.role}
                                     onChange={(e) => handleChangeRole(u.id, e.target.value)}
                                     style={{
-                                      background: 'var(--bg-secondary)',
-                                      color: 'var(--text-primary)',
+                                      backgroundColor: 'var(--bg-secondary)',
+                                      color: 'var(--color-primary, #007AFF)',
                                       border: '1px solid var(--border-color)',
                                       borderRadius: '8px',
-                                      padding: '2px 8px',
-                                      fontSize: '12px',
-                                      fontWeight: 600,
+                                      padding: '4px 24px 4px 10px',
+                                      fontSize: '11px',
+                                      fontWeight: 'bold',
                                       outline: 'none',
-                                      cursor: 'pointer'
+                                      cursor: 'pointer',
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '0.5px'
                                     }}
                                   >
                                     <option value="student">Student</option>

@@ -95,3 +95,17 @@ export async function sendDynamicEmail(currentUser, to_email, to_name, subject, 
     return false;
   }
 }
+
+export async function syncGcalBackground(schedule, scheduleId, action = 'sync') {
+  try {
+    const apiBase = getApiBase();
+    fetch(`${apiBase}/api/sync-event-gcal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schedule, scheduleId, action })
+    }).catch(err => console.error("GCal Background Sync Failed:", err));
+  } catch (e) {
+    console.error("GCal sync trigger failed", e);
+  }
+}
+

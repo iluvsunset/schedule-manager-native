@@ -31,7 +31,7 @@ import {
   ConfirmModal,
   GoogleSyncPromptModal
 } from '../components/dashboard/Modals';
-import { showMessage, sendDynamicEmail, formatTime, formatDate } from '../utils/helpers';
+import { showMessage, sendDynamicEmail, formatTime, formatDate, syncGcalBackground } from '../utils/helpers';
 import { Wrench, Megaphone } from 'lucide-react';
 import WebGLBackground from '../components/WebGLBackground';
 import { getWebDomain } from '../platform';
@@ -406,6 +406,8 @@ export default function Dashboard() {
         status: 'ongoing',
         startedAt: Timestamp.now()
       });
+      const sched = schedules.find(s => s.id === id);
+      if (sched) syncGcalBackground(sched, id, 'sync');
       showMessage('Event started!', 'success');
     } catch (e) {
       showMessage(e.message, 'error');
@@ -418,6 +420,8 @@ export default function Dashboard() {
         status: 'completed',
         completedAt: Timestamp.now()
       });
+      const sched = schedules.find(s => s.id === id);
+      if (sched) syncGcalBackground(sched, id, 'sync');
       showMessage('Event completed!', 'success');
     } catch (e) {
       showMessage(e.message, 'error');
@@ -429,6 +433,8 @@ export default function Dashboard() {
       message: 'Delete this event?',
       onConfirm: async () => {
         try {
+          const sched = schedules.find(s => s.id === id);
+          if (sched) syncGcalBackground(sched, id, 'delete');
           await deleteDoc(doc(db, 'schedules', id));
           showMessage('Event deleted', 'success');
         } catch (e) {
@@ -444,6 +450,8 @@ export default function Dashboard() {
       onConfirm: async () => {
         try {
           await updateDoc(doc(db, 'schedules', id), { status: 'cancelled' });
+          const sched = schedules.find(s => s.id === id);
+          if (sched) syncGcalBackground(sched, id, 'delete'); // Remove cancelled from GCal
           showMessage('Event cancelled', 'success');
         } catch (e) {
           showMessage(e.message, 'error');
