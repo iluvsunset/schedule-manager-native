@@ -15,7 +15,7 @@ module.exports = async function handler(req, res) {
       access_type: 'offline', // Crucial: This gets us the Refresh Token
       prompt: 'consent', // Crucial: Forces Google to give a refresh token even if previously authorized
       scope: [
-        'https://www.googleapis.com/auth/calendar.events.readonly'
+        'https://www.googleapis.com/auth/calendar.events'
       ],
       state: `${uid}|${req.query.native === 'true' ? 'native' : 'web'}`, // Pass uid and clientType
     });

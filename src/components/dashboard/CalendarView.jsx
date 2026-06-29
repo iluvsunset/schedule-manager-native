@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { formatTime } from '../../utils/helpers';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Eye, Play, Check, X, Trash2, Clock, Send, Share2, Edit3 } from 'lucide-react';
+import { Eye, Play, Check, X, Trash2, Clock, Send, Share2, Edit3, CalendarCheck } from 'lucide-react';
+import { showMessage } from '../../utils/helpers';
+import { getApiBase } from '../../platform';
 
 export default function CalendarView({ schedules, onSelectEvent, onStart, onComplete, onDelete, onCancel, onEdit, onShare, onSendReminder }) {
-  const { canEditSchedule, canDeleteSchedule, userRole } = useAuth();
+  const { canEditSchedule, canDeleteSchedule, userRole, currentUser } = useAuth();
+  const [syncingGcal, setSyncingGcal] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState(0);
   const [selectedDayEvents, setSelectedDayEvents] = useState(null);
@@ -34,6 +37,37 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
     const newDate = new Date();
     setDirection(newDate > currentDate ? 1 : (newDate < currentDate ? -1 : 0));
     setCurrentDate(newDate);
+  };
+
+  const handleSyncGcal = async () => {
+    if (!currentUser) return;
+    setSyncingGcal(true);
+    showMessage('Starting Google Calendar sync...', 'success');
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${getApiBase()}/api/export-gcal`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (res.status === 401 && data.error === 'Google Calendar not connected') {
+        showMessage('Please link your Google Calendar first from the Calendar tab settings or profile.', 'error');
+        // Redirect to google auth if they want, but the current UI requires doing it from GcalView or Profile.
+        // I will trigger the native/web auth flow here for convenience.
+        const authUrl = `${getApiBase()}/api/gcal-auth?uid=${currentUser.uid}&native=false`;
+        window.location.href = authUrl;
+        return;
+      }
+      
+      if (!res.ok) throw new Error(data.error || 'Failed to sync');
+      showMessage(`Successfully synced ${data.syncedCount} events to Google Calendar!`, 'success');
+    } catch (err) {
+      console.error(err);
+      showMessage(err.message, 'error');
+    } finally {
+      setSyncingGcal(false);
+    }
   };
 
   // Generate cells
@@ -118,6 +152,16 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
+          </button>
+          
+          <button 
+            className="btn btn-outline" 
+            style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            onClick={handleSyncGcal}
+            disabled={syncingGcal}
+          >
+            <CalendarCheck size={16} />
+            {syncingGcal ? 'Syncing...' : 'Sync to Google Calendar'}
           </button>
         </div>
       </div>

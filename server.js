@@ -29,6 +29,7 @@ const nativeGoogleAuthHandler = require('./api/native-google-auth');
 const nativeGoogleCallbackHandler = require('./api/native-google-callback');
 const gcalAuthHandler = require('./api/gcal-auth');
 const gcalCallbackHandler = require('./api/gcal-callback');
+const exportGcalHandler = require('./api/export-gcal');
 
 // ...
 
@@ -60,6 +61,15 @@ app.post('/api/email', async (req, res) => {
         if (!res.headersSent) {
             res.status(500).json({ error: "Internal Server Error", details: error.message });
         }
+    }
+});
+
+app.post('/api/export-gcal', async (req, res) => {
+    try {
+        await exportGcalHandler(req, res);
+    } catch (e) {
+        console.error("Route Error export-gcal:", e);
+        if (!res.headersSent) res.status(500).send("Server Error");
     }
 });
 

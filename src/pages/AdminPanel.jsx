@@ -269,6 +269,19 @@ export default function AdminPanel() {
     });
   };
 
+  // Change User Role
+  const handleChangeRole = async (email, newRole) => {
+    try {
+      await updateDoc(doc(db, 'allowed_users', email), {
+        role: newRole
+      });
+      await writeSystemLog('admin_action', 'admin_panel', `Changed role of ${email} to ${newRole}`, { target: email, new_role: newRole });
+      showMessage(`Updated role for ${email}`, 'success');
+    } catch (err) {
+      showMessage(err.message, 'error');
+    }
+  };
+
   // Create Classroom Submit
   const handleCreateClass = async (e) => {
     e.preventDefault();
@@ -1074,7 +1087,26 @@ export default function AdminPanel() {
                                   )}
                                 </div>
                                 <span className="item-subtitle" style={{ marginLeft: '10px' }}>
-                                  <span className={`badge badge-${u.role}`}>{u.role.replace('_', ' ')}</span>
+                                  <select
+                                    value={u.role}
+                                    onChange={(e) => handleChangeRole(u.id, e.target.value)}
+                                    style={{
+                                      background: 'var(--bg-secondary)',
+                                      color: 'var(--text-primary)',
+                                      border: '1px solid var(--border-color)',
+                                      borderRadius: '8px',
+                                      padding: '2px 8px',
+                                      fontSize: '12px',
+                                      fontWeight: 600,
+                                      outline: 'none',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    <option value="student">Student</option>
+                                    <option value="teacher">Teacher</option>
+                                    <option value="senior_teacher">Senior Teacher</option>
+                                    <option value="it">IT Admin</option>
+                                  </select>
                                 </span>
                               </div>
                               <div style={{ display: 'flex', gap: '6px' }}>
