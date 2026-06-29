@@ -219,6 +219,14 @@ export function EventDetailModal({
     };
   };
 
+  const getHighResUrl = (url) => {
+    if (!url) return url;
+    if (url.includes('googleusercontent.com')) {
+      return url.replace(/=s\d+.*$/, '=s1200-k-no').replace(/=w\d+-h\d+.*$/, '=s1200-k-no');
+    }
+    return url;
+  };
+
   useEffect(() => {
     if (!isOpen || !schedule) return;
     setImageUrl(schedule.placeImage || null);
@@ -302,7 +310,7 @@ export function EventDetailModal({
         {imageUrl ? (
           <div style={{ position: 'relative', width: '100%', height: '140px', background: 'rgba(0,0,0,0.4)' }}>
             <img 
-              src={imageUrl} 
+              src={getHighResUrl(imageUrl)} 
               referrerPolicy="no-referrer"
               alt={schedule.place} 
               style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
@@ -426,6 +434,18 @@ export function EventDetailModal({
                     {schedule.reviewLearned && <div style={{ fontSize: '13px', color: 'white' }}>{schedule.reviewLearned}</div>}
                     {schedule.reviewNotes && <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>"{schedule.reviewNotes}"</div>}
                   </div>
+                </div>
+              )}
+
+              {/* Added Image in left column */}
+              {imageUrl && (
+                <div style={{ width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', flex: 1, minHeight: '180px', maxHeight: '300px', display: 'flex' }}>
+                  <img 
+                    src={getHighResUrl(imageUrl)} 
+                    referrerPolicy="no-referrer"
+                    alt={schedule.place}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 </div>
               )}
             </div>
