@@ -300,7 +300,7 @@ export function EventDetailModal({
   return (
     <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="750px">
         {imageUrl ? (
-          <div style={{ position: 'relative', width: '100%', height: '200px', background: 'rgba(0,0,0,0.4)' }}>
+          <div style={{ position: 'relative', width: '100%', height: '140px', background: 'rgba(0,0,0,0.4)' }}>
             <img 
               src={imageUrl} 
               referrerPolicy="no-referrer"
@@ -341,7 +341,7 @@ export function EventDetailModal({
                     {placeInfo.category}
                   </span>
                 )}
-                <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'white', margin: '8px 0 0 0' }}>{schedule.place}</h2>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'white', margin: '6px 0 0 0' }}>{schedule.place}</h2>
               </div>
               <button className="modal-close" onClick={onClose} style={{ color: 'white', background: 'rgba(0,0,0,0.4)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}>×</button>
             </div>
@@ -353,15 +353,15 @@ export function EventDetailModal({
           </div>
         )}
 
-        <div className="modal-body" style={{ padding: '24px', paddingBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '28px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div className="modal-body" style={{ padding: '20px', paddingBottom: '16px' }}>
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             
             {/* Left Column: Schedule info */}
             <div style={{ flex: '1.2', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0, alignSelf: 'flex-start' }}>
-              <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Time & Schedule</div>
+              <div className="section-title" style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Time & Schedule</div>
               
-              <div style={{ display: 'flex', gap: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '16px', borderRadius: '12px' }}>
-                <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '12px', borderRadius: '12px' }}>
+                <div style={{ flex: 1, display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', color: 'var(--brand-primary)', flexShrink: 0, paddingLeft: '10px' }}>
                     <Calendar size={16} />
                   </div>
@@ -371,7 +371,7 @@ export function EventDetailModal({
                   </div>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', color: 'var(--color-success)', flexShrink: 0, paddingLeft: '10px' }}>
                     <Clock size={16} />
                   </div>
@@ -428,7 +428,7 @@ export function EventDetailModal({
             </div>
 
             {/* Right Column: Google Places details */}
-            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '28px' }}>
+            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '20px' }}>
               <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span>Place Intelligence Console</span>
                 {placeInfo.rating && (
@@ -472,7 +472,7 @@ export function EventDetailModal({
                       </body>
                       </html>
                     `}
-                    style={{ width: '100%', height: '200px', border: 'none', display: 'block' }}
+                    style={{ width: '100%', height: '150px', border: 'none', display: 'block' }}
                   />
                   {/* Map Expand Overlay Button */}
                   <button 
