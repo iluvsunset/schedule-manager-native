@@ -2,27 +2,25 @@ module.exports = async (req, res) => {
   try {
     const path = req.url.split('?')[0];
     
-    // Map paths to the corresponding handler in the server directory
     const routeMap = {
-      '/api/backfill-enddate': '../server/backfill-enddate.js',
-      '/api/cron': '../server/cron.js',
-      '/api/email': '../server/email.js',
-      '/api/export-gcal': '../server/export-gcal.js',
-      '/api/gcal-auth': '../server/gcal-auth.js',
-      '/api/gcal-callback': '../server/gcal-callback.js',
-      '/api/gcal-events': '../server/gcal-events.js',
-      '/api/gcal-webhook': '../server/gcal-webhook.js',
-      '/api/native-google-auth': '../server/native-google-auth.js',
-      '/api/native-google-callback': '../server/native-google-callback.js',
-      '/api/places': '../server/places.js',
-      '/api/share': '../server/share.js',
-      '/api/sync-event-gcal': '../server/sync-event-gcal.js'
+      '/api/backfill-enddate': require('../server/backfill-enddate.js'),
+      '/api/cron': require('../server/cron.js'),
+      '/api/email': require('../server/email.js'),
+      '/api/export-gcal': require('../server/export-gcal.js'),
+      '/api/gcal-auth': require('../server/gcal-auth.js'),
+      '/api/gcal-callback': require('../server/gcal-callback.js'),
+      '/api/gcal-events': require('../server/gcal-events.js'),
+      '/api/gcal-webhook': require('../server/gcal-webhook.js'),
+      '/api/native-google-auth': require('../server/native-google-auth.js'),
+      '/api/native-google-callback': require('../server/native-google-callback.js'),
+      '/api/places': require('../server/places.js'),
+      '/api/share': require('../server/share.js'),
+      '/api/sync-event-gcal': require('../server/sync-event-gcal.js')
     };
 
-    const handlerPath = routeMap[path] || routeMap[path.replace(/\/$/, '')];
+    const handler = routeMap[path] || routeMap[path.replace(/\/$/, '')];
 
-    if (handlerPath) {
-      const handler = require(handlerPath);
+    if (handler) {
       return await handler(req, res);
     }
 
