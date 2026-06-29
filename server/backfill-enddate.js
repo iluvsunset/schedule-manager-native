@@ -20,9 +20,16 @@ module.exports = async function handler(req, res) {
     const decoded = await admin.auth().verifyIdToken(idToken);
     const db = admin.firestore();
 
-    const userSnap = await db.collection('allowed_users').doc(decoded.email.toLowerCase()).get();
-    if (!userSnap.exists || userSnap.data().role !== 'it') {
-      return res.status(403).json({ error: 'IT admin only' });
+    const userEmail = decoded.email.toLowerCase();
+    
+    // Check hardcoded IT admin emails first (matching frontend AuthContext logic)
+    const isHardcodedAdmin = userEmail === 'bao.h0146824@gmail.com' || userEmail === 'sunsetmyfav@gmail.com';
+    
+    if (!isHardcodedAdmin) {
+      const userSnap = await db.collection('allowed_users').doc(userEmail).get();
+      if (!userSnap.exists || userSnap.data().role !== 'it') {
+        return res.status(403).json({ error: 'IT admin only' });
+      }
     }
 
     // 1. Find all schedules that have some GCal ID but no endDate
