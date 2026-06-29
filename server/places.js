@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer-core');
+
 const fs = require('fs');
 const path = require('path');
 const { admin } = require('./_utils');
@@ -41,6 +41,7 @@ module.exports = async function(req, res) {
   
   let browser;
   try {
+    const puppeteer = (await import('puppeteer-core')).default;
     browser = await puppeteer.connect({
       browserWSEndpoint: `wss://chrome.browserless.io?token=${token}`
     });
