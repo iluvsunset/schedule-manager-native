@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
     // 4. Fetch User's Schedules (Active)
     const schedulesSnap = await db.collection('schedules')
       .where('participants', 'array-contains', email.toLowerCase())
-      .where('status', 'in', ['scheduled', 'rescheduled'])
+      .where('status', 'in', ['upcoming', 'completed'])
       .get();
 
     let syncedCount = 0;
