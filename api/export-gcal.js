@@ -1,7 +1,5 @@
-const { getOAuthClient, initAdmin } = require('./_utils');
+const { getOAuthClient, admin } = require('./_utils');
 const { google } = require('googleapis');
-
-const admin = initAdmin();
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
