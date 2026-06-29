@@ -60,8 +60,9 @@ module.exports = async function handler(req, res) {
 
     let syncedCount = 0;
     const errors = [];
+    const action = req.body?.action || 'sync';
 
-    // 5. Sync to Google Calendar
+    // 5. Sync or Remove from Google Calendar
     for (const docSnap of schedulesSnap.docs) {
       const schedule = docSnap.data();
       
@@ -71,6 +72,28 @@ module.exports = async function handler(req, res) {
         endTime = typeof schedule.endDate.toDate === 'function' ? schedule.endDate.toDate() : new Date(schedule.endDate);
       } else {
         endTime = new Date(startTime.getTime() + (schedule.duration || 60) * 60000);
+      }
+
+      if (action === 'remove') {
+        if (schedule.exportedGcalEventId) {
+          try {
+            await calendar.events.delete({
+              calendarId: 'primary',
+              eventId: schedule.exportedGcalEventId
+            });
+            await docSnap.ref.update({ exportedGcalEventId: admin.firestore.FieldValue.delete() });
+            syncedCount++;
+          } catch (err) {
+            // Ignore if already deleted in GCal
+            if (err.code === 404 || err.code === 410) {
+              await docSnap.ref.update({ exportedGcalEventId: admin.firestore.FieldValue.delete() });
+              syncedCount++;
+            } else {
+              errors.push(err.message);
+            }
+          }
+        }
+        continue;
       }
 
       // Build rich description from all DB info

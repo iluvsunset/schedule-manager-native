@@ -2199,3 +2199,46 @@ export function GoogleSyncPromptModal({ isOpen, onClose, event, schedules }) {
   );
 }
 
+export function SyncGCalModal({ isOpen, onClose, onConfirm, isSyncing }) {
+  if (!isOpen) return null;
+  return (
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="400px">
+      <div className="modal-header">
+        <h3>Sync to Google Calendar</h3>
+        <button className="modal-close" onClick={onClose} disabled={isSyncing}>×</button>
+      </div>
+      <div className="modal-body" style={{ padding: '24px 20px' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.5, marginBottom: '24px' }}>
+          You can sync all your internal class events directly to your Google Calendar, or you can completely remove all previously synced events.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button 
+            className="btn btn-primary" 
+            style={{ width: '100%', padding: '12px', justifyContent: 'center' }}
+            onClick={() => onConfirm('sync')}
+            disabled={isSyncing}
+          >
+            {isSyncing ? 'Processing...' : 'Sync Events to GCal'}
+          </button>
+          <button 
+            className="btn btn-ghost" 
+            style={{ width: '100%', padding: '12px', justifyContent: 'center', color: 'var(--color-error)' }}
+            onClick={() => onConfirm('remove')}
+            disabled={isSyncing}
+          >
+            Remove Synced Events
+          </button>
+          <button 
+            className="btn btn-ghost" 
+            style={{ width: '100%', padding: '12px', justifyContent: 'center' }}
+            onClick={onClose}
+            disabled={isSyncing}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+

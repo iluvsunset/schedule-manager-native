@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Eye, Play, Check, X, Trash2, Clock, Send, Share2, Edit3, CalendarCheck } from 'lucide-react';
 import { showMessage } from '../../utils/helpers';
 import { getApiBase, openGCalAuth } from '../../platform';
+import { SyncGCalModal } from './Modals';
 
 export default function CalendarView({ schedules, onSelectEvent, onStart, onComplete, onDelete, onCancel, onEdit, onShare, onSendReminder }) {
   const { canEditSchedule, canDeleteSchedule, userRole, currentUser } = useAuth();
@@ -12,6 +13,7 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
   const [currentDate, setCurrentDate] = useState(new Date());
   const [direction, setDirection] = useState(0);
   const [selectedDayEvents, setSelectedDayEvents] = useState(null);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -39,15 +41,22 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
     setCurrentDate(newDate);
   };
 
-  const handleSyncGcal = async () => {
+  const handleSyncGcalClick = () => setIsSyncModalOpen(true);
+
+  const handleSyncGcalConfirm = async (action) => {
     if (!currentUser) return;
     setSyncingGcal(true);
-    showMessage('Starting Google Calendar sync...', 'success');
+    setIsSyncModalOpen(false);
+    showMessage(action === 'sync' ? 'Starting Google Calendar sync...' : 'Removing events from Google Calendar...', 'success');
     try {
       const token = await currentUser.getIdToken();
       const res = await fetch(`${getApiBase()}/api/export-gcal`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action })
       });
       const data = await res.json();
       
@@ -151,9 +160,9 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
             </svg>
           </button>
           
-          <button className="btn btn-ghost" style={{ fontSize: '13px', gap: '6px', display: 'inline-flex', alignItems: 'center' }} onClick={handleSyncGcal} disabled={syncingGcal}>
+          <button className="btn btn-ghost" style={{ fontSize: '13px', gap: '6px', display: 'inline-flex', alignItems: 'center' }} onClick={handleSyncGcalClick} disabled={syncingGcal}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            {syncingGcal ? 'Syncing...' : 'Sync to GCal'}
+            {syncingGcal ? 'Processing...' : 'Sync to GCal'}
           </button>
         </div>
       </div>
@@ -253,9 +262,8 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
                 </motion.div>
               ))}
             </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+      </AnimatePresence>
+    </div>
 
       <AnimatePresence>
         {selectedDayEvents && (
@@ -715,6 +723,12 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
           </div>
         )}
       </AnimatePresence>
+      <SyncGCalModal 
+        isOpen={isSyncModalOpen} 
+        onClose={() => setIsSyncModalOpen(false)} 
+        onConfirm={handleSyncGcalConfirm} 
+        isSyncing={syncingGcal} 
+      />
     </div>
   );
 }
