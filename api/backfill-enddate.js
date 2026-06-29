@@ -25,12 +25,13 @@ module.exports = async function handler(req, res) {
       return res.status(403).json({ error: 'IT admin only' });
     }
 
-    // 1. Find all schedules that have a gcalEventId but no endDate
+    // 1. Find all schedules that have some GCal ID but no endDate
     const allSchedules = await db.collection('schedules').get();
     const needsBackfill = [];
     allSchedules.forEach(doc => {
       const d = doc.data();
-      if (d.gcalEventId && !d.endDate) {
+      const hasId = d.gcalEventId || d.exportedGcalEventId || (d.gcalEventIds && Object.keys(d.gcalEventIds).length > 0);
+      if (hasId && !d.endDate) {
         needsBackfill.push({ id: doc.id, ...d });
       }
     });
@@ -77,9 +78,22 @@ module.exports = async function handler(req, res) {
         // 3. For each schedule, fetch the GCal event to get end time
         for (const sched of schedules) {
           try {
+            // Priority: webhook > export > background sync (pick the owner's event)
+            let eventIdToFetch = sched.gcalEventId || sched.exportedGcalEventId;
+            if (!eventIdToFetch && sched.gcalEventIds) {
+              const uSnap = await db.collection('allowed_users').where('uid', '==', uid).get();
+              const uEmail = !uSnap.empty ? uSnap.docs[0].id : null;
+              eventIdToFetch = uEmail ? sched.gcalEventIds[uEmail] : Object.values(sched.gcalEventIds)[0];
+            }
+
+            if (!eventIdToFetch) {
+              skipped++;
+              continue;
+            }
+
             const gcalEvent = await calendar.events.get({
               calendarId: 'primary',
-              eventId: sched.gcalEventId,
+              eventId: eventIdToFetch,
             });
 
             const event = gcalEvent.data;
