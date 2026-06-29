@@ -792,6 +792,31 @@ export default function AdminPanel() {
     }
   };
 
+  // Backfill endDate from GCal for existing synced events
+  const [backfilling, setBackfilling] = useState(false);
+  const handleBackfillEndDate = async () => {
+    setBackfilling(true);
+    try {
+      showMessage('Fetching end times from Google Calendar...', 'success');
+      const idToken = await auth.currentUser.getIdToken();
+      const apiBase = getApiBase();
+      const res = await fetch(`${apiBase}/api/backfill-enddate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showMessage(`${data.message} (${data.updated} updated, ${data.skipped} skipped)`, 'success');
+      } else {
+        showMessage(data.error || 'Backfill failed', 'error');
+      }
+    } catch (err) {
+      showMessage('Backfill error: ' + err.message, 'error');
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   // Open SMTP Modal
   const handleOpenSMTP = async () => {
     setShowSMTPModal(true);
@@ -1449,6 +1474,9 @@ export default function AdminPanel() {
                             </button>
                             <button onClick={handleForceGCalSync} className="glow-button btn btn-full" style={{ fontSize: '13px', padding: '12px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                               Force GCal Sync
+                            </button>
+                            <button onClick={handleBackfillEndDate} disabled={backfilling} className="glow-button btn btn-full" style={{ fontSize: '13px', padding: '12px', color: '#60a5fa', borderColor: 'rgba(96, 165, 250, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                              {backfilling ? 'Backfilling...' : 'Backfill End Times'}
                             </button>
                           </div>
                         </motion.div>
