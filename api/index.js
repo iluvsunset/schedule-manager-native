@@ -14,6 +14,7 @@ module.exports = async (req, res) => {
       '/api/native-google-auth': require('../server/native-google-auth.js'),
       '/api/native-google-callback': require('../server/native-google-callback.js'),
       '/api/places': require('../server/places.js'),
+      '/api/places/search': require('../server/places.js'),
       '/api/share': require('../server/share.js'),
       '/api/sync-event-gcal': require('../server/sync-event-gcal.js')
     };
