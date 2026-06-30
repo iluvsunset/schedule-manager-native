@@ -3,7 +3,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import AsyncButton from '../AsyncButton';
 import DatePicker from '../ui/DatePicker';
-import { getWebDomain } from '../../platform';
+import { getWebDomain, getApiBase } from '../../platform';
 function ModalWrapper({ isOpen, onClose, children, maxWidth = '500px' }) {
   const [render, setRender] = useState(isOpen);
   const [animate, setAnimate] = useState(false);
@@ -254,7 +254,7 @@ export function EventDetailModal({
       setLoadingImage(true);
       const fetchPlaceImage = async () => {
         try {
-          const response = await fetch('/api/places/search', {
+          const response = await fetch(`${getApiBase()}/api/places/search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query: storedLocation })
@@ -1056,7 +1056,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
   const resolveFullPlaceDetails = async (res) => {
     setResolvingDetails(true);
     try {
-      const response = await fetch('/api/places/search', {
+      const response = await fetch(`${getApiBase()}/api/places/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1139,7 +1139,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
     setSearchingMaps(true);
     setSearchResults([]);
     try {
-      const response = await fetch('/api/places/search', {
+      const response = await fetch(`${getApiBase()}/api/places/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1505,7 +1505,7 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
   const resolveFullPlaceDetails = async (res) => {
     setResolvingDetails(true);
     try {
-      const response = await fetch('/api/places/search', {
+      const response = await fetch(`${getApiBase()}/api/places/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -1624,7 +1624,7 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
     setSearchingMaps(true);
     setSearchResults([]);
     try {
-      const response = await fetch('/api/places/search', {
+      const response = await fetch(`${getApiBase()}/api/places/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
