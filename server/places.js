@@ -98,12 +98,7 @@ module.exports = async function(req, res) {
       console.log("[Google Maps Scraper] Timeout waiting for map selectors, proceeding anyway...");
     }
 
-    // Debug screenshot (local dev only)
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        await page.screenshot({ path: '/tmp/maps_debug.png' });
-      } catch (_) {}
-    }
+    // Debug screenshot removed to prevent EROFS crashes on Vercel
     
     let currentUrl = page.url();
 

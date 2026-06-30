@@ -386,13 +386,17 @@ module.exports = async function handler(req, res) {
             updateData.location = newGcalLocation;
             updateData.gcalLocation = newGcalLocation;
             
-            // Clear metadata cache so it can be re-resolved
+            // Clear all metadata cache so it can be fully re-resolved
             updateData.placeImage = null;
+            updateData.placeImages = null;
             updateData.placeSummary = null;
             updateData.placeRating = null;
             updateData.placeCategory = null;
             updateData.placeWebsite = null;
             updateData.placePhone = null;
+            updateData.placeAiSummary = null;
+            updateData.placeLatitude = null;
+            updateData.placeLongitude = null;
           }
 
           await existingDoc.ref.update(updateData);
