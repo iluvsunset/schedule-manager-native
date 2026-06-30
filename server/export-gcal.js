@@ -74,19 +74,27 @@ module.exports = async function handler(req, res) {
         endTime = new Date(startTime.getTime() + (schedule.duration || 60) * 60000);
       }
 
+      const existingEventId = schedule.exportedGcalEventId || (schedule.gcalEventIds && schedule.gcalEventIds[email.toLowerCase()]);
+
       if (action === 'remove') {
-        if (schedule.exportedGcalEventId) {
+        if (existingEventId) {
           try {
             await calendar.events.delete({
               calendarId: 'primary',
-              eventId: schedule.exportedGcalEventId
+              eventId: existingEventId
             });
-            await docSnap.ref.update({ exportedGcalEventId: admin.firestore.FieldValue.delete() });
+            await docSnap.ref.update({ 
+              exportedGcalEventId: admin.firestore.FieldValue.delete(),
+              [`gcalEventIds.${email.toLowerCase()}`]: admin.firestore.FieldValue.delete()
+            });
             syncedCount++;
           } catch (err) {
             // Ignore if already deleted in GCal
             if (err.code === 404 || err.code === 410) {
-              await docSnap.ref.update({ exportedGcalEventId: admin.firestore.FieldValue.delete() });
+              await docSnap.ref.update({ 
+                exportedGcalEventId: admin.firestore.FieldValue.delete(),
+                [`gcalEventIds.${email.toLowerCase()}`]: admin.firestore.FieldValue.delete()
+              });
               syncedCount++;
             } else {
               errors.push(err.message);
@@ -126,13 +134,17 @@ module.exports = async function handler(req, res) {
       };
 
       try {
-        if (schedule.exportedGcalEventId) {
+        if (existingEventId) {
           // Update existing
           await calendar.events.update({
             calendarId: 'primary',
-            eventId: schedule.exportedGcalEventId,
+            eventId: existingEventId,
             requestBody: eventPayload,
           });
+          // Sync ID back to exportedGcalEventId for consistency
+          if (!schedule.exportedGcalEventId) {
+            await docSnap.ref.update({ exportedGcalEventId: existingEventId });
+          }
         } else {
           // Insert new
           const res = await calendar.events.insert({

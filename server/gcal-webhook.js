@@ -288,9 +288,14 @@ module.exports = async function handler(req, res) {
       for (const event of fetchedEvents) {
         
         // Direct DB check to find existing synced events
-        const dupSnap = await db.collection('schedules')
-                                .where('gcalEventId', '==', event.id)
-                                .get();
+        const dupSnapLegacy = await db.collection('schedules').where('gcalEventId', '==', event.id).get();
+        const dupSnapIds = userEmail ? await db.collection('schedules').where(`gcalEventIds.${userEmail}`, '==', event.id).get() : { empty: true, docs: [] };
+        const dupSnapExported = await db.collection('schedules').where('exportedGcalEventId', '==', event.id).get();
+        
+        const dupSnap = {
+          empty: dupSnapLegacy.empty && dupSnapIds.empty && dupSnapExported.empty,
+          docs: [...dupSnapLegacy.docs, ...dupSnapIds.docs, ...dupSnapExported.docs]
+        };
 
         if (event.status === 'cancelled') {
           // Handle deletions
