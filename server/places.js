@@ -98,11 +98,11 @@ module.exports = async function(req, res) {
       console.log("[Google Maps Scraper] Timeout waiting for map selectors, proceeding anyway...");
     }
 
-    // Save a screenshot for debugging (use /tmp which is writable in serverless)
-    try {
-      await page.screenshot({ path: '/tmp/maps_debug.png' });
-    } catch (screenshotErr) {
-      console.log('[Google Maps Scraper] Screenshot skipped:', screenshotErr.message);
+    // Debug screenshot (local dev only)
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        await page.screenshot({ path: '/tmp/maps_debug.png' });
+      } catch (_) {}
     }
     
     let currentUrl = page.url();
