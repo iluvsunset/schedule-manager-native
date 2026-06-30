@@ -98,12 +98,12 @@ module.exports = async function(req, res) {
       console.log("[Google Maps Scraper] Timeout waiting for map selectors, proceeding anyway...");
     }
 
-    // Save a screenshot for debugging
-    const scratchDir = path.join(__dirname, '../scratch');
-    if (!fs.existsSync(scratchDir)) {
-      fs.mkdirSync(scratchDir, { recursive: true });
+    // Save a screenshot for debugging (use /tmp which is writable in serverless)
+    try {
+      await page.screenshot({ path: '/tmp/maps_debug.png' });
+    } catch (screenshotErr) {
+      console.log('[Google Maps Scraper] Screenshot skipped:', screenshotErr.message);
     }
-    await page.screenshot({ path: path.join(scratchDir, 'maps_debug.png') });
     
     let currentUrl = page.url();
 
