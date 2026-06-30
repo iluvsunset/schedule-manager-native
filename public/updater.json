@@ -1,15 +1,15 @@
 {
-  "version": "0.1.4",
-  "notes": "Security fix: removed hardcoded Gemini API key and added email/RBAC management (upcoming).",
-  "pub_date": "2026-06-29T06:44:00Z",
+  "version": "0.1.5",
+  "notes": "Google Maps API endpoint resolution fix for desktop client.",
+  "pub_date": "2026-06-30T10:46:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW5RcTY5SFp0M05CUEtFTGxZV1RidDJPSi9MOWNJd2NmaGMzdVN4TUxpMmI4M3BiUXN1a2xHL01aaG4wSjNSMXBrWFFMQ2VBY2YwOU1OL0o3dDVxWVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNzE1NDYxCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CjhQYlEwVDh1REsvdzg2N0RWc2FINWoyNEI0WlFMeUFDZ1NWSy9tMVFQcHUyNit4emNCUCtCWUNMTDYybklaNjZVYXZuc0p2Y2VnWXNlcUpGODNBd0FBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.4/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW55ekNIMVFvSER3SXIvTnZiWlZuaXBLWUxZSVBWNVBnNkhoNWwxT1R6VHZ1VkNBVTZPN1ltMWx1dTJiZE1KL1J2OXBLR0dkWjRuMUF3OHR6cS9OT1FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyODE2MzgwCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm03aE1QYUxXYzZ2MDJFTWpwNHFsOHNueFhUbXdidTRRcGlqdUZBT0VHTHIvczZEejQ0TkU4c0ttTDRsMWZHanE3bmdVdVBYOXg1anl0Mk1UTDMzWUFnPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.5/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW5RcTY5SFp0M05CUEtFTGxZV1RidDJPSi9MOWNJd2NmaGMzdVN4TUxpMmI4M3BiUXN1a2xHL01aaG4wSjNSMXBrWFFMQ2VBY2YwOU1OL0o3dDVxWVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyNzE1NDYxCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CjhQYlEwVDh1REsvdzg2N0RWc2FINWoyNEI0WlFMeUFDZ1NWSy9tMVFQcHUyNit4emNCUCtCWUNMTDYybklaNjZVYXZuc0p2Y2VnWXNlcUpGODNBd0FBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.4/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW55ekNIMVFvSER3SXIvTnZiWlZuaXBLWUxZSVBWNVBnNkhoNWwxT1R6VHZ1VkNBVTZPN1ltMWx1dTJiZE1KL1J2OXBLR0dkWjRuMUF3OHR6cS9OT1FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyODE2MzgwCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm03aE1QYUxXYzZ2MDJFTWpwNHFsOHNueFhUbXdidTRRcGlqdUZBT0VHTHIvczZEejQ0TkU4c0ttTDRsMWZHanE3bmdVdVBYOXg1anl0Mk1UTDMzWUFnPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.5/Schedule.Manager.app.tar.gz"
     }
   }
 }
