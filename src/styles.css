@@ -4753,10 +4753,11 @@ input[type="checkbox"]:checked::after {
 .datepicker-input {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 10px 14px;
+  padding: 0 14px;
+  height: 42px;
   border-radius: 10px;
   cursor: pointer;
   transition: all 150ms var(--ease-apple-out);
@@ -4764,6 +4765,7 @@ input[type="checkbox"]:checked::after {
   font-family: var(--font-family);
   font-size: 15px;
   box-sizing: border-box;
+  width: 100%;
 }
 
 .datepicker-input.icon-only {
