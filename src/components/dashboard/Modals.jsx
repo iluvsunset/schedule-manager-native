@@ -519,36 +519,7 @@ export function EventDetailModal({
                   >
                     Expand ↗
                   </button>
-                  {/* Map info banner overlay */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '12px',
-                    left: '12px',
-                    right: '12px',
-                    background: 'rgba(15, 23, 42, 0.85)',
-                    backdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '10px',
-                    padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    zIndex: 1000
-                  }}>
-                    {imageUrl && (
-                      <img src={imageUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '11px', fontWeight: 700, color: 'white', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {schedule.place}
-                      </div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-secondary)', display: 'flex', gap: '6px' }}>
-                        <span>★ {placeInfo.rating || '4.0'}</span>
-                        <span>•</span>
-                        <span>{placeInfo.category || 'Location'}</span>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Map info banner overlay removed for cleaner UI */}
                 </div>
               )}
 

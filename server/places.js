@@ -164,18 +164,33 @@ module.exports = async function(req, res) {
 
       console.log(`[Google Maps Scraper] Single Match: "${details.title}" | Address: "${details.address}" | Summary: "${details.summary}"`);
       
-      // Parse coordinates from final page URL
+      // Parse coordinates from static meta tag to avoid capturing intermediate map panning coordinates
       let parsedLat = null;
       let parsedLng = null;
       try {
-        const pageUrl = page.url();
-        const coordMatch = pageUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-        if (coordMatch) {
-          parsedLat = parseFloat(coordMatch[1]);
-          parsedLng = parseFloat(coordMatch[2]);
+        const metaCoords = await page.evaluate(() => {
+          const metaImage = document.querySelector('meta[itemprop="image"]');
+          if (metaImage) {
+            const content = metaImage.getAttribute('content') || '';
+            const match = content.match(/center=(-?\d+\.\d+)%2C(-?\d+\.\d+)/) || content.match(/center=(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+          }
+          return null;
+        });
+        if (metaCoords) {
+          parsedLat = metaCoords.lat;
+          parsedLng = metaCoords.lng;
+        } else {
+          // Fallback to URL but wait briefly for panning to settle if needed
+          const pageUrl = page.url();
+          const coordMatch = pageUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+          if (coordMatch) {
+            parsedLat = parseFloat(coordMatch[1]);
+            parsedLng = parseFloat(coordMatch[2]);
+          }
         }
       } catch (urlErr) {
-        console.warn("Failed to parse coordinates from page URL:", urlErr.message);
+        console.warn("Failed to parse coordinates:", urlErr.message);
       }
 
       // Generate ChatGPT-like detailed AI summary via Gemini
