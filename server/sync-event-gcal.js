@@ -2,12 +2,13 @@ const { getOAuthClient, admin } = require('./_utils');
 const { google } = require('googleapis');
 
 module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
   res.setHeader('Content-Type', 'application/json');
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     return res.status(200).end();
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -73,15 +74,31 @@ module.exports = async function handler(req, res) {
           minutes: offsetHours * 60
         }));
 
-        let startTime;
-        if (schedule.date && schedule.date.seconds) {
-          startTime = new Date(schedule.date.seconds * 1000);
-        } else {
-          startTime = new Date(schedule.date || Date.now());
-        }
+        const parseDate = (val) => {
+          let parsed;
+          if (!val) parsed = new Date();
+          else if (val instanceof Date) parsed = val;
+          else if (typeof val === 'number') parsed = new Date(val);
+          else if (typeof val === 'object') {
+            if (typeof val._seconds === 'number') {
+              parsed = new Date(val._seconds * 1000);
+            } else if (typeof val.seconds === 'number') {
+              parsed = new Date(val.seconds * 1000);
+            } else if (typeof val.toDate === 'function') {
+              parsed = val.toDate();
+            } else {
+              parsed = new Date(val);
+            }
+          } else {
+            parsed = new Date(val);
+          }
+          return isNaN(parsed.getTime()) ? new Date() : parsed;
+        };
+
+        let startTime = parseDate(schedule.date);
         let endTime;
         if (schedule.endDate) {
-          endTime = schedule.endDate.seconds ? new Date(schedule.endDate.seconds * 1000) : new Date(schedule.endDate);
+          endTime = parseDate(schedule.endDate);
         } else {
           endTime = new Date(startTime.getTime() + (schedule.duration || 60) * 60000);
         }
