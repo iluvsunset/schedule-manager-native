@@ -6,8 +6,8 @@ if (fs.existsSync(envLocal)) {
 }
 require('dotenv').config();
 const express = require('express');
-const emailHandler = require('./api/email');
-const { admin, sendEmail } = require('./api/_utils');
+const emailHandler = require('./server/email');
+const { admin, sendEmail } = require('./server/_utils');
 const db = admin ? admin.firestore() : null;
 
 const app = express();
@@ -24,12 +24,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-const shareHandler = require('./api/share');
-const nativeGoogleAuthHandler = require('./api/native-google-auth');
-const nativeGoogleCallbackHandler = require('./api/native-google-callback');
-const gcalAuthHandler = require('./api/gcal-auth');
-const gcalCallbackHandler = require('./api/gcal-callback');
-const exportGcalHandler = require('./api/export-gcal');
+const shareHandler = require('./server/share');
+const nativeGoogleAuthHandler = require('./server/native-google-auth');
+const nativeGoogleCallbackHandler = require('./server/native-google-callback');
+const gcalAuthHandler = require('./server/gcal-auth');
+const gcalCallbackHandler = require('./server/gcal-callback');
+const exportGcalHandler = require('./server/export-gcal');
 
 // ...
 
@@ -105,7 +105,7 @@ app.get('/api/gcal-callback', async (req, res) => {
     }
 });
 
-const gcalEventsHandler = require('./api/gcal-events');
+const gcalEventsHandler = require('./server/gcal-events');
 app.get('/api/gcal-events', async (req, res) => {
     try {
         await gcalEventsHandler(req, res);
@@ -114,7 +114,7 @@ app.get('/api/gcal-events', async (req, res) => {
     }
 });
 
-const gcalWebhookHandler = require('./api/gcal-webhook');
+const gcalWebhookHandler = require('./server/gcal-webhook');
 app.post('/api/gcal-webhook', async (req, res) => {
     try {
         await gcalWebhookHandler(req, res);
@@ -123,7 +123,7 @@ app.post('/api/gcal-webhook', async (req, res) => {
     }
 });
 
-const cronHandler = require('./api/cron');
+const cronHandler = require('./server/cron');
 app.get('/api/cron', async (req, res) => {
     try {
         await cronHandler(req, res);
@@ -132,12 +132,22 @@ app.get('/api/cron', async (req, res) => {
     }
 });
 
-const placesHandler = require('./api/places');
+const placesHandler = require('./server/places');
 app.post('/api/places/search', async (req, res) => {
     try {
         await placesHandler(req, res);
     } catch (e) {
         res.status(500).json({ error: "Server Error", details: e.message });
+    }
+});
+
+const syncEventGcalHandler = require('./server/sync-event-gcal');
+app.post('/api/sync-event-gcal', async (req, res) => {
+    try {
+        await syncEventGcalHandler(req, res);
+    } catch (e) {
+        console.error("Route Error sync-event-gcal:", e);
+        if (!res.headersSent) res.status(500).send("Server Error");
     }
 });
 

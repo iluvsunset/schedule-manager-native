@@ -45,8 +45,15 @@ export default function CalendarView({ schedules, onSelectEvent, onStart, onComp
 
   const handleSyncGcalConfirm = async (action) => {
     if (!currentUser) return;
-    setSyncingGcal(true);
     setIsSyncModalOpen(false);
+
+    if (action === 'reconnect') {
+      showMessage('Opening Google to reconnect calendar...', 'success');
+      await openGCalAuth(currentUser.uid);
+      return;
+    }
+
+    setSyncingGcal(true);
     showMessage(action === 'sync' ? 'Starting Google Calendar sync...' : 'Removing events from Google Calendar...', 'success');
     try {
       const token = await currentUser.getIdToken();

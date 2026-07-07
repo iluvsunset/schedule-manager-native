@@ -115,7 +115,7 @@ module.exports = async function handler(req, res) {
         descParts.push('\nManaged by Schedule Manager.');
 
         const eventPayload = {
-          summary: `Class: ${schedule.place || schedule.classId}`,
+          summary: schedule.place || schedule.classId || 'Event',
           description: descParts.join('\n'),
           location: schedule.location || '',
           start: { dateTime: startTime.toISOString(), timeZone: 'UTC' },

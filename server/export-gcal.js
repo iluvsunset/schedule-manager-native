@@ -142,9 +142,11 @@ module.exports = async function handler(req, res) {
             eventId: existingEventId,
             requestBody: eventPayload,
           });
-          // Sync ID back to exportedGcalEventId for consistency
-          if (!schedule.exportedGcalEventId) {
-            await docSnap.ref.update({ exportedGcalEventId: existingEventId });
+          // Sync ID back to gcalEventIds map just in case it was missing
+          if (!schedule.gcalEventIds || !schedule.gcalEventIds[email.toLowerCase()]) {
+            await docSnap.ref.update({
+              [`gcalEventIds.${email.toLowerCase()}`]: existingEventId
+            });
           }
         } else {
           // Insert new
@@ -153,7 +155,10 @@ module.exports = async function handler(req, res) {
             requestBody: eventPayload,
           });
           // Save the exported ID back to firestore so we can update it later
-          await docSnap.ref.update({ exportedGcalEventId: res.data.id });
+          await docSnap.ref.update({ 
+            exportedGcalEventId: res.data.id,
+            [`gcalEventIds.${email.toLowerCase()}`]: res.data.id
+          });
         }
         syncedCount++;
       } catch (err) {

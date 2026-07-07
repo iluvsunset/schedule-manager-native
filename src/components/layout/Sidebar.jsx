@@ -92,7 +92,7 @@ export default function Sidebar({
             { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
             { id: 'calendar', label: 'Calendar', icon: Calendar },
             ...(!isStudent ? [{ id: 'members', label: 'Class Members', icon: Users }] : []),
-            ...(showGcal ? [{ id: 'gcal', label: 'Google Calendar', icon: CalendarDays }] : [])
+            ...(showGcal ? [{ id: 'gcal', label: 'Import from GCal', icon: CalendarDays }] : [])
           ].map((item) => {
             const isActive = activeTab === item.id && !isProfileActive && !isAdminActive;
             return (

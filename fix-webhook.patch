@@ -1,0 +1,41 @@
+--- server/gcal-webhook.js
++++ server/gcal-webhook.js
+@@ -374,15 +374,18 @@
+ 
+           // 1. Only update place name if summary changed from originally synced summary
+           const oldOriginalSummary = data.originalSummary || data.place || '';
++          let placeChanged = false;
+           if (summary && summary !== oldOriginalSummary) {
+             updateData.place = summary;
+             updateData.originalSummary = summary;
++            placeChanged = true;
+           }
+ 
+           // 2. Only update location if event location changed from last synced location
+           const newGcalLocation = event.location || event.hangoutLink || event.htmlLink || '';
+           const oldGcalLocation = data.gcalLocation !== undefined ? data.gcalLocation : (data.location || '');
++          let locationChanged = false;
+           if (newGcalLocation !== oldGcalLocation) {
+             updateData.location = newGcalLocation;
+             updateData.gcalLocation = newGcalLocation;
++            locationChanged = true;
+             
+             // Clear all metadata cache so it can be fully re-resolved
+             updateData.placeImage = null;
+@@ -399,10 +402,12 @@
+             updateData.placeLongitude = null;
+           }
+ 
+-          await existingDoc.ref.update(updateData);
+-          triggerSync({ ...data, ...updateData }, existingDoc.id, 'sync', [userEmail]);
+-          console.log(`Updated existing GCal event: ${summary}`);
+-          updatedCount++;
++          if (hasTimeChanged || placeChanged || locationChanged) {
++            await existingDoc.ref.update(updateData);
++            triggerSync({ ...data, ...updateData }, existingDoc.id, 'sync', [userEmail]);
++            console.log(`Updated existing GCal event: ${summary}`);
++            updatedCount++;
++          }
+ 
+           // Send update emails to students if time/date changed
+           let participants = data.participants;

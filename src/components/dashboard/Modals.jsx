@@ -227,13 +227,31 @@ export function EventDetailModal({
     return url;
   };
 
+  // Pick the best cover image from available images
+  const pickBestCoverImage = (mainImage, images) => {
+    if (!images || images.length === 0) return mainImage || null;
+    // Tier 1: User-uploaded Google Photos contributions (gps-cs / gps-proxy)
+    const gpsPhoto = images.find(u => (u.includes('gps-cs') || u.includes('gps-proxy')) && u.includes('googleusercontent.com'));
+    if (gpsPhoto) return gpsPhoto;
+    // Tier 2: Other googleusercontent photos (not streetview)
+    const googlePhoto = images.find(u => u.includes('googleusercontent.com') && !u.includes('streetviewpixels'));
+    if (googlePhoto) return googlePhoto;
+    // Tier 3: Whatever is first
+    return mainImage || images[0] || null;
+  };
+
   useEffect(() => {
     if (!isOpen || !schedule) return;
-    setImageUrl(schedule.placeImage || null);
+    setImageUrl(pickBestCoverImage(schedule.placeImage, schedule.placeImages) || null);
     // If the stored location is a URL, fall back to null until resolved
-    const storedLocation = schedule.location || '';
+    const cleanQueryString = (q) => {
+      if (!q) return '';
+      return q.replace(/^(Class|Meeting|Event|Appointment|Call):\s*/i, '').trim();
+    };
+    const storedLocation = schedule.location || schedule.place || '';
+    const searchQuery = cleanQueryString(storedLocation);
     const isStoredUrl = storedLocation.startsWith('http');
-    setResolvedAddress(isStoredUrl ? null : (storedLocation || null));
+    setResolvedAddress(isStoredUrl ? null : (searchQuery || null));
     setPlaceInfo({
       summary: schedule.placeSummary || '',
       rating: schedule.placeRating || '',
@@ -248,7 +266,7 @@ export function EventDetailModal({
 
     const hasImage = !!schedule.placeImage;
     const hasSummary = !!schedule.placeSummary;
-    const hasValidLocation = storedLocation && storedLocation.trim().length > 3;
+    const hasValidLocation = searchQuery && searchQuery.trim().length > 3;
 
     if ((!hasImage || !hasSummary) && hasValidLocation) {
       setLoadingImage(true);
@@ -257,14 +275,15 @@ export function EventDetailModal({
           const response = await fetch(`${getApiBase()}/api/places/search`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: storedLocation })
+            body: JSON.stringify({ query: searchQuery })
           });
           const data = await response.json();
           if (data.results && data.results.length > 0) {
             const firstResult = data.results[0];
             const resolvedAddr = firstResult.address && !firstResult.address.includes('not found') ? firstResult.address : null;
             setResolvedAddress(resolvedAddr);
-            setImageUrl(firstResult.image || null);
+            const bestCover = pickBestCoverImage(firstResult.image, firstResult.images);
+            setImageUrl(bestCover || null);
             setPlaceInfo({
               summary: firstResult.summary || '',
               rating: firstResult.rating || '',
@@ -279,7 +298,7 @@ export function EventDetailModal({
 
              await updateDoc(doc(db, 'schedules', schedule.id), { 
                location: resolvedAddr || storedLocation,
-               placeImage: firstResult.image || null,
+               placeImage: bestCover || null,
                placeImages: firstResult.images || null,
                placeSummary: firstResult.summary || null,
                placeRating: firstResult.rating || null,
@@ -306,9 +325,9 @@ export function EventDetailModal({
   const dueDisplay = schedule.assignmentDue ? new Date(schedule.assignmentDue).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
 
   return (
-    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="750px">
+    <ModalWrapper isOpen={isOpen} onClose={onClose} maxWidth="960px">
         {imageUrl ? (
-          <div style={{ position: 'relative', width: '100%', height: '140px', background: 'rgba(0,0,0,0.4)' }}>
+          <div style={{ position: 'relative', width: '100%', height: '170px', background: 'rgba(0,0,0,0.4)' }}>
             <img 
               src={getHighResUrl(imageUrl)} 
               referrerPolicy="no-referrer"
@@ -361,15 +380,15 @@ export function EventDetailModal({
           </div>
         )}
 
-        <div className="modal-body" style={{ padding: '20px', paddingBottom: '16px' }}>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div className="modal-body" style={{ padding: '24px', paddingBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             
             {/* Left Column: Schedule info */}
-            <div style={{ flex: '1.2', minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0, alignSelf: 'flex-start' }}>
-              <div className="section-title" style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Time & Schedule</div>
+            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: 0, alignSelf: 'flex-start' }}>
+              <div className="section-title" style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time & Schedule</div>
               
-              <div style={{ display: 'flex', gap: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '12px', borderRadius: '12px' }}>
-                <div style={{ flex: 1, display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ flex: 1, display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', color: 'var(--brand-primary)', flexShrink: 0, paddingLeft: '10px' }}>
                     <Calendar size={16} />
                   </div>
@@ -395,7 +414,7 @@ export function EventDetailModal({
 
               {schedule.notes && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Notes</div>
+                  <div className="section-title" style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Notes</div>
                   <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', padding: '14px', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                     {schedule.notes}
                   </div>
@@ -437,22 +456,26 @@ export function EventDetailModal({
                 </div>
               )}
 
-              {/* Added Image in left column */}
+              {/* Place Photo in Left Panel */}
               {imageUrl && (
-                <div style={{ width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', flex: 1, minHeight: '180px', maxHeight: '300px', display: 'flex' }}>
-                  <img 
-                    src={getHighResUrl(imageUrl)} 
-                    referrerPolicy="no-referrer"
-                    alt={schedule.place}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div className="section-title" style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Place Photo</div>
+                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+                    <img 
+                      src={getHighResUrl(imageUrl)} 
+                      referrerPolicy="no-referrer"
+                      alt={schedule.place} 
+                      style={{ width: '100%', height: '160px', objectFit: 'cover', display: 'block' }} 
+                      onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Right Column: Google Places details */}
-            <div style={{ flex: '1', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '20px' }}>
-              <div className="section-title" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ flex: '1.4', minWidth: '340px', display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid rgba(255,255,255,0.06)', paddingLeft: '24px' }}>
+              <div className="section-title" style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', letterSpacing: '0.05em' }}>
                 <span>Place Intelligence Console</span>
                 {placeInfo.rating && (
                   <span style={{ fontSize: '12px', color: '#FBBF24', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -461,41 +484,13 @@ export function EventDetailModal({
                 )}
               </div>
 
-              {/* 1. Leaflet Interactive Dark Map with Card Overlay */}
-              {placeInfo.latitude && placeInfo.longitude && (
+              {/* 1. Google Maps Native Embed */}
+              {(resolvedAddress || schedule.location || schedule.place) && (
                 <div style={{ position: 'relative', width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
                   <iframe 
                     title="map"
-                    srcDoc={`
-                      <!DOCTYPE html>
-                      <html>
-                      <head>
-                        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-                        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-                        <style>
-                          body, html, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #020617; }
-                          .leaflet-marker-icon { filter: hue-rotate(140deg); }
-                        </style>
-                      </head>
-                      <body>
-                        <div id="map"></div>
-                        <script>
-                          const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([${placeInfo.latitude}, ${placeInfo.longitude}], 17);
-                          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                            maxZoom: 20
-                          }).addTo(map);
-                          const icon = L.divIcon({
-                            html: '<div style="width:14px;height:14px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(59,130,246,0.3)"></div>',
-                            iconSize: [20, 20],
-                            iconAnchor: [10, 10],
-                            className: ''
-                          });
-                          L.marker([${placeInfo.latitude}, ${placeInfo.longitude}], { icon }).addTo(map);
-                        </script>
-                      </body>
-                      </html>
-                    `}
-                    style={{ width: '100%', height: '150px', border: 'none', display: 'block' }}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent(resolvedAddress || schedule.location || schedule.place)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                    style={{ width: '100%', height: '170px', border: 'none', display: 'block', filter: 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(85%)' }}
                   />
                   {/* Map Expand Overlay Button */}
                   <button 
@@ -537,17 +532,6 @@ export function EventDetailModal({
                     />
                   ))}
                 </div>
-              ) : imageUrl && !loadingImage ? (
-                /* Fallback: show the single cover image full-width */
-                <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <img
-                    src={imageUrl}
-                    referrerPolicy="no-referrer"
-                    alt={schedule.place}
-                    style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }}
-                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
-                  />
-                </div>
               ) : null}
 
               {/* Loader placeholder */}
@@ -579,70 +563,33 @@ export function EventDetailModal({
                     )}
                   </div>
 
-                  {/* Location Address */}
-                  {resolvedAddress && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📍 Location</div>
-                      <div style={{ fontSize: '12px', color: '#cbd5e1', paddingLeft: '4px', lineHeight: 1.5 }}>
-                        <strong>{schedule.place}</strong>
-                        <br />
-                        <span style={{ color: 'var(--text-secondary)' }}>{resolvedAddress}</span>
+                  {/* Verified Location Card (Always display above Good For tags) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Verified Location</div>
+                    <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', color: 'white', fontSize: '13px', lineHeight: 1.5 }}>
+                        <MapPin size={16} style={{ color: 'var(--brand-primary)', flexShrink: 0, marginTop: '2px' }} />
+                        <span style={{ wordBreak: 'break-all' }}>{resolvedAddress || schedule.location || schedule.place}</span>
                       </div>
+                      <a 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const fallbackLocation = schedule.location || schedule.place;
+                          const mapQuery = resolvedAddress || fallbackLocation;
+                          const mapUrl = fallbackLocation && fallbackLocation.startsWith('http') ? fallbackLocation : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schedule.place + ' ' + mapQuery)}`;
+                          openExternalUrl(mapUrl);
+                        }}
+                        style={{ alignSelf: 'flex-start', fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600 }}
+                      >
+                        Open in Google Maps ↗
+                      </a>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Special Features highlights */}
-                  {placeInfo.aiSummary.specialFeatures && placeInfo.aiSummary.specialFeatures.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>🦖 What makes it special</div>
-                      <ul style={{ paddingLeft: '16px', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {placeInfo.aiSummary.specialFeatures.map((feat, idx) => (
-                          <li key={idx} style={{ fontSize: '12px', color: '#e2e8f0', lineHeight: 1.5 }}>
-                            {feat.text}
-                            {feat.source && (
-                              <span style={{ 
-                                fontSize: '8px', 
-                                background: 'rgba(255,255,255,0.06)', 
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                color: 'var(--text-secondary)', 
-                                padding: '1px 5px', 
-                                borderRadius: '4px', 
-                                marginLeft: '6px',
-                                display: 'inline-block',
-                                verticalAlign: 'middle'
-                              }}>
-                                {feat.source}
-                              </span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Opening Hours */}
-                  {placeInfo.aiSummary.openingHours && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>⏰ Opening Hours</div>
-                      <div style={{ fontSize: '12px', color: '#cbd5e1', paddingLeft: '4px' }}>
-                        {placeInfo.aiSummary.openingHours}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Price */}
-                  {placeInfo.aiSummary.priceRange && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>💰 Price Range</div>
-                      <div style={{ fontSize: '12px', color: '#cbd5e1', paddingLeft: '4px', lineHeight: 1.4 }}>
-                        {placeInfo.aiSummary.priceRange}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Good For Tags */}
+                  {/* Good For Tags (Perfect if you want) */}
                   {placeInfo.aiSummary.goodFor && placeInfo.aiSummary.goodFor.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                       <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Perfect if you want</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {placeInfo.aiSummary.goodFor.map((tag, idx) => (
@@ -658,28 +605,28 @@ export function EventDetailModal({
                 /* Fallback layout if AI summary is not generated yet (backward compatible) */
                 !loadingImage && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {schedule.location && !schedule.location.includes('google.com/calendar/event') && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Verified Location</div>
-                        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <div style={{ display: 'flex', gap: '8px', color: 'white', fontSize: '13px', lineHeight: 1.5 }}>
-                            <MapPin size={16} style={{ color: 'var(--brand-primary)', flexShrink: 0, marginTop: '2px' }} />
-                            <span style={{ wordBreak: 'break-all' }}>{schedule.location}</span>
-                          </div>
-                          <a 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              const mapUrl = schedule.location.startsWith('http') ? schedule.location : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schedule.place + ' ' + schedule.location)}`;
-                              openExternalUrl(mapUrl);
-                            }}
-                            style={{ alignSelf: 'flex-start', fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600 }}
-                          >
-                            Open in Google Maps ↗
-                          </a>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>Verified Location</div>
+                      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '14px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', color: 'white', fontSize: '13px', lineHeight: 1.5 }}>
+                          <MapPin size={16} style={{ color: 'var(--brand-primary)', flexShrink: 0, marginTop: '2px' }} />
+                          <span style={{ wordBreak: 'break-all' }}>{resolvedAddress || schedule.location || schedule.place}</span>
                         </div>
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const fallbackLocation = schedule.location || schedule.place;
+                            const mapQuery = resolvedAddress || fallbackLocation;
+                            const mapUrl = fallbackLocation && fallbackLocation.startsWith('http') ? fallbackLocation : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(schedule.place + ' ' + mapQuery)}`;
+                            openExternalUrl(mapUrl);
+                          }}
+                          style={{ alignSelf: 'flex-start', fontSize: '12px', color: 'var(--brand-primary)', fontWeight: 600 }}
+                        >
+                          Open in Google Maps ↗
+                        </a>
                       </div>
-                    )}
+                    </div>
 
                     {placeInfo.summary && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1014,6 +961,11 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
   const [mapQuery, setMapQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   
+  const [placeLatitude, setPlaceLatitude] = useState(null);
+  const [placeLongitude, setPlaceLongitude] = useState(null);
+  const [placeImages, setPlaceImages] = useState([]);
+  const [placeAiSummary, setPlaceAiSummary] = useState(null);
+
   const [placeSummary, setPlaceSummary] = useState('');
   const [placeRating, setPlaceRating] = useState('');
   const [placeCategory, setPlaceCategory] = useState('');
@@ -1047,6 +999,10 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         setPlaceCategory(fullRes.category || '');
         setPlaceWebsite(fullRes.website || '');
         setPlacePhone(fullRes.phone || '');
+        setPlaceLatitude(fullRes.latitude || null);
+        setPlaceLongitude(fullRes.longitude || null);
+        setPlaceImages(fullRes.images || []);
+        setPlaceAiSummary(fullRes.aiSummary || null);
         showMessage('Full place details resolved!', 'success');
       } else {
         setPlace(res.title);
@@ -1057,6 +1013,10 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         setPlaceCategory(res.category || '');
         setPlaceWebsite(res.website || '');
         setPlacePhone(res.phone || '');
+        setPlaceLatitude(res.latitude || null);
+        setPlaceLongitude(res.longitude || null);
+        setPlaceImages(res.images || []);
+        setPlaceAiSummary(res.aiSummary || null);
         showMessage('Location selected.', 'success');
       }
     } catch (err) {
@@ -1069,6 +1029,10 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
       setPlaceCategory(res.category || '');
       setPlaceWebsite(res.website || '');
       setPlacePhone(res.phone || '');
+      setPlaceLatitude(res.latitude || null);
+      setPlaceLongitude(res.longitude || null);
+      setPlaceImages(res.images || []);
+      setPlaceAiSummary(res.aiSummary || null);
       showMessage('Location selected.', 'success');
     } finally {
       setResolvingDetails(false);
@@ -1091,9 +1055,22 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         showMessage('Current location acquired!', 'success');
       },
       (error) => {
-        setLoadingLocation(false);
         console.warn("Geolocation permission error:", error);
-        showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+        fetch('https://ipapi.co/json/')
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.latitude && data.longitude) {
+              setCoords({ lat: data.latitude, lng: data.longitude });
+              showMessage('Used network location (app permissions denied).', 'success');
+            } else {
+              showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+            }
+            setLoadingLocation(false);
+          })
+          .catch(err => {
+            setLoadingLocation(false);
+            showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+          });
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
@@ -1135,6 +1112,10 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
           setPlaceCategory(item.category || '');
           setPlaceWebsite(item.website || '');
           setPlacePhone(item.phone || '');
+          setPlaceLatitude(item.latitude || null);
+          setPlaceLongitude(item.longitude || null);
+          setPlaceImages(item.images || []);
+          setPlaceAiSummary(item.aiSummary || null);
           showMessage('Location loaded!', 'success');
         } else if (results.length > 1) {
           showMessage(`Found ${results.length} matches! Choose one from the list.`, 'success');
@@ -1202,6 +1183,10 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
         placeCategory: placeCategory || null,
         placeWebsite: placeWebsite || null,
         placePhone: placePhone || null,
+        placeLatitude: placeLatitude || null,
+        placeLongitude: placeLongitude || null,
+        placeImages: placeImages || null,
+        placeAiSummary: placeAiSummary || null,
         participants: allClassParticipants,
         createdAt: Timestamp.now(),
         status: 'upcoming'
@@ -1243,6 +1228,10 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
       setPlaceCategory('');
       setPlaceWebsite('');
       setPlacePhone('');
+      setPlaceLatitude(null);
+      setPlaceLongitude(null);
+      setPlaceImages([]);
+      setPlaceAiSummary(null);
       showMessage('Event created successfully!', 'success');
       onClose();
     } catch (err) {
@@ -1463,6 +1452,11 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
   const [mapQuery, setMapQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   
+  const [placeLatitude, setPlaceLatitude] = useState(null);
+  const [placeLongitude, setPlaceLongitude] = useState(null);
+  const [placeImages, setPlaceImages] = useState([]);
+  const [placeAiSummary, setPlaceAiSummary] = useState(null);
+
   const [placeSummary, setPlaceSummary] = useState('');
   const [placeRating, setPlaceRating] = useState('');
   const [placeCategory, setPlaceCategory] = useState('');
@@ -1496,6 +1490,10 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
         setPlaceCategory(fullRes.category || '');
         setPlaceWebsite(fullRes.website || '');
         setPlacePhone(fullRes.phone || '');
+        setPlaceLatitude(fullRes.latitude || null);
+        setPlaceLongitude(fullRes.longitude || null);
+        setPlaceImages(fullRes.images || []);
+        setPlaceAiSummary(fullRes.aiSummary || null);
         showMessage('Full place details resolved!', 'success');
       } else {
         setPlace(res.title);
@@ -1506,6 +1504,10 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
         setPlaceCategory(res.category || '');
         setPlaceWebsite(res.website || '');
         setPlacePhone(res.phone || '');
+        setPlaceLatitude(res.latitude || null);
+        setPlaceLongitude(res.longitude || null);
+        setPlaceImages(res.images || []);
+        setPlaceAiSummary(res.aiSummary || null);
         showMessage('Location selected.', 'success');
       }
     } catch (err) {
@@ -1518,6 +1520,10 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
       setPlaceCategory(res.category || '');
       setPlaceWebsite(res.website || '');
       setPlacePhone(res.phone || '');
+      setPlaceLatitude(res.latitude || null);
+      setPlaceLongitude(res.longitude || null);
+      setPlaceImages(res.images || []);
+      setPlaceAiSummary(res.aiSummary || null);
       showMessage('Location selected.', 'success');
     } finally {
       setResolvingDetails(false);
@@ -1540,9 +1546,22 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
         showMessage('Current location acquired!', 'success');
       },
       (error) => {
-        setLoadingLocation(false);
         console.warn("Geolocation permission error:", error);
-        showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+        fetch('https://ipapi.co/json/')
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.latitude && data.longitude) {
+              setCoords({ lat: data.latitude, lng: data.longitude });
+              showMessage('Used network location (app permissions denied).', 'success');
+            } else {
+              showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+            }
+            setLoadingLocation(false);
+          })
+          .catch(err => {
+            setLoadingLocation(false);
+            showMessage('Could not access location. Defaulting to HCMC center.', 'info');
+          });
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
@@ -1585,6 +1604,10 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
       setPlaceCategory(schedule.placeCategory || '');
       setPlaceWebsite(schedule.placeWebsite || '');
       setPlacePhone(schedule.placePhone || '');
+      setPlaceLatitude(schedule.placeLatitude || null);
+      setPlaceLongitude(schedule.placeLongitude || null);
+      setPlaceImages(schedule.placeImages || []);
+      setPlaceAiSummary(schedule.placeAiSummary || null);
     }
   }, [schedule, isOpen]);
 
@@ -1620,6 +1643,10 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
           setPlaceCategory(item.category || '');
           setPlaceWebsite(item.website || '');
           setPlacePhone(item.phone || '');
+          setPlaceLatitude(item.latitude || null);
+          setPlaceLongitude(item.longitude || null);
+          setPlaceImages(item.images || []);
+          setPlaceAiSummary(item.aiSummary || null);
           showMessage('Location loaded!', 'success');
         } else if (results.length > 1) {
           showMessage(`Found ${results.length} matches! Choose one from the list.`, 'success');
@@ -1649,6 +1676,10 @@ export function EditEventModal({ isOpen, onClose, schedule }) {
         placeCategory: placeCategory || null,
         placeWebsite: placeWebsite || null,
         placePhone: placePhone || null,
+        placeLatitude: placeLatitude || null,
+        placeLongitude: placeLongitude || null,
+        placeImages: placeImages || null,
+        placeAiSummary: placeAiSummary || null,
         date: Timestamp.fromDate(dateTime),
         endDate: endDateTime ? Timestamp.fromDate(endDateTime) : null,
         assignmentTask: assignmentTask || null,
@@ -2218,6 +2249,14 @@ export function SyncGCalModal({ isOpen, onClose, onConfirm, isSyncing }) {
             disabled={isSyncing}
           >
             Remove Synced Events
+          </button>
+          <button 
+            className="btn btn-ghost" 
+            style={{ width: '100%', padding: '12px', justifyContent: 'center', color: 'var(--brand-primary)' }}
+            onClick={() => onConfirm('reconnect')}
+            disabled={isSyncing}
+          >
+            Reconnect Google Calendar
           </button>
           <button 
             className="btn btn-ghost" 
