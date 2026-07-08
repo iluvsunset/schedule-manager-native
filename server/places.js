@@ -386,20 +386,34 @@ Output JSON format (all fields optional except chatgptSummary):
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
         
         console.log(`[Google Maps Scraper] Generating Gemini AI place summary for: "${details.title}"`);
-        const geminiRes = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: promptText }]
-            }],
-            generationConfig: {
-              responseMimeType: "application/json"
-            }
-          })
-        });
+        let geminiRes;
+        let retries = 3;
+        while (retries > 0) {
+          geminiRes = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: promptText }]
+              }],
+              generationConfig: {
+                responseMimeType: "application/json"
+              }
+            })
+          });
 
-        if (geminiRes.ok) {
+          if (geminiRes.ok) {
+            break;
+          } else if (geminiRes.status >= 500) {
+            console.warn(`[Google Maps Scraper] Gemini API 5xx error (${geminiRes.status}), retrying... (${retries - 1} left)`);
+            retries--;
+            if (retries > 0) await new Promise(r => setTimeout(r, 2000));
+          } else {
+            break; // 4xx errors are permanent, don't retry
+          }
+        }
+
+        if (geminiRes && geminiRes.ok) {
           const geminiData = await geminiRes.json();
           const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
@@ -407,7 +421,7 @@ Output JSON format (all fields optional except chatgptSummary):
             console.log(`[Google Maps Scraper] Gemini AI summary generated successfully.`);
           }
         } else {
-          console.error(`[Google Maps Scraper] Gemini API error: ${geminiRes.status} ${geminiRes.statusText}`);
+          console.error(`[Google Maps Scraper] Gemini API error: ${geminiRes?.status} ${geminiRes?.statusText}`);
         }
       } catch (geminiErr) {
         console.error(`[Google Maps Scraper] Failed to call Gemini API:`, geminiErr.message);
