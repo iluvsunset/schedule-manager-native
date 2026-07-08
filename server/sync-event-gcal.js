@@ -34,11 +34,12 @@ module.exports = async function handler(req, res) {
       const emailLower = email.toLowerCase();
       if (skipEmails.includes(emailLower)) continue;
 
+      let uid = null;
       try {
         const usersSnap = await admin.auth().getUserByEmail(emailLower).catch(() => null);
         if (!usersSnap) continue;
 
-        const uid = usersSnap.uid;
+        uid = usersSnap.uid;
         const tokenDoc = await db.collection('gcal_tokens').doc(uid).get();
         if (!tokenDoc.exists) continue;
         
