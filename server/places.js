@@ -424,7 +424,17 @@ Output JSON format (all fields optional except chatgptSummary):
           const geminiData = await geminiRes.json();
           const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
-            aiSummary = JSON.parse(rawText);
+            let cleanText = rawText.trim();
+            if (cleanText.startsWith('```json')) {
+              cleanText = cleanText.substring(7);
+            } else if (cleanText.startsWith('```')) {
+              cleanText = cleanText.substring(3);
+            }
+            if (cleanText.endsWith('```')) {
+              cleanText = cleanText.substring(0, cleanText.length - 3);
+            }
+            cleanText = cleanText.trim();
+            aiSummary = JSON.parse(cleanText);
             console.log(`[Google Maps Scraper] Gemini AI summary generated successfully.`);
           }
         } else {
