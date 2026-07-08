@@ -383,12 +383,21 @@ Output JSON format (all fields optional except chatgptSummary):
 
         const geminiKey = process.env.GEMINI_API_KEY;
         if (!geminiKey) throw new Error('GEMINI_API_KEY environment variable is not set');
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
         
+
         console.log(`[Google Maps Scraper] Generating Gemini AI place summary for: "${details.title}"`);
+        
+        const fallbackModels = [
+          'gemini-3.5-flash',
+          'gemini-3.1-flash-lite',
+          'gemini-2.5-flash'
+        ];
+
         let geminiRes;
-        let retries = 3;
-        while (retries > 0) {
+        for (const modelName of fallbackModels) {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiKey}`;
+          console.log(`[Google Maps Scraper] Trying model: ${modelName}...`);
+          
           geminiRes = await fetch(geminiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -404,12 +413,10 @@ Output JSON format (all fields optional except chatgptSummary):
 
           if (geminiRes.ok) {
             break;
-          } else if (geminiRes.status >= 500) {
-            console.warn(`[Google Maps Scraper] Gemini API 5xx error (${geminiRes.status}), retrying... (${retries - 1} left)`);
-            retries--;
-            if (retries > 0) await new Promise(r => setTimeout(r, 2000));
           } else {
-            break; // 4xx errors are permanent, don't retry
+            console.warn(`[Google Maps Scraper] Model ${modelName} failed with status: ${geminiRes.status} ${geminiRes.statusText}`);
+            // Wait 1 second before trying the next fallback
+            await new Promise(r => setTimeout(r, 1000));
           }
         }
 
@@ -421,7 +428,7 @@ Output JSON format (all fields optional except chatgptSummary):
             console.log(`[Google Maps Scraper] Gemini AI summary generated successfully.`);
           }
         } else {
-          console.error(`[Google Maps Scraper] Gemini API error: ${geminiRes?.status} ${geminiRes?.statusText}`);
+          console.error(`[Google Maps Scraper] All Gemini fallback models failed. Last error: ${geminiRes?.status} ${geminiRes?.statusText}`);
         }
       } catch (geminiErr) {
         console.error(`[Google Maps Scraper] Failed to call Gemini API:`, geminiErr.message);
