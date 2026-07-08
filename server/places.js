@@ -383,7 +383,7 @@ Output JSON format (all fields optional except chatgptSummary):
 
         const geminiKey = process.env.GEMINI_API_KEY;
         if (!geminiKey) throw new Error('GEMINI_API_KEY environment variable is not set');
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${geminiKey}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
         
         console.log(`[Google Maps Scraper] Generating Gemini AI place summary for: "${details.title}"`);
         const geminiRes = await fetch(geminiUrl, {
