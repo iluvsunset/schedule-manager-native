@@ -1,15 +1,15 @@
 {
-  "version": "0.1.5",
-  "notes": "Google Maps API endpoint resolution fix for desktop client.",
-  "pub_date": "2026-06-30T10:46:00Z",
+  "version": "0.1.7",
+  "notes": "v0.1.7 — Bug Fix Release\n• Timezone Fix: All event times now always display in Vietnam time (UTC+7) regardless of where you open the app.\n• Webhook Overhaul: Google Calendar sync now correctly detects when a teacher reschedules an event and updates all students instantly.\n• Smart Token Cleanup: Server auto-removes bad GCal tokens that lack permissions, stopping spam sync errors.\n• Auto Webhook Renewal: Webhook channels now auto-renew every 6 days so they never silently expire again.",
+  "pub_date": "2026-07-08T11:31:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW55ekNIMVFvSER3SXIvTnZiWlZuaXBLWUxZSVBWNVBnNkhoNWwxT1R6VHZ1VkNBVTZPN1ltMWx1dTJiZE1KL1J2OXBLR0dkWjRuMUF3OHR6cS9OT1FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyODE2MzgwCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm03aE1QYUxXYzZ2MDJFTWpwNHFsOHNueFhUbXdidTRRcGlqdUZBT0VHTHIvczZEejQ0TkU4c0ttTDRsMWZHanE3bmdVdVBYOXg1anl0Mk1UTDMzWUFnPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.5/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXRkUW80cU9RdHNXd09ENEpidkRTWVNXZUo4WFd2OE1SOG5hOUY0cXdDNWpmNi9vWW9wUjYxZVRobll5MFFCeXkveFZMVzBscWpNcEsvUkxHNmlHMkFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTEwMjU2CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CjkzRVQyWkMwMEh2OTliMXdrZEpNWXJYMkhIWmY2NVZ0eEpDVWllclZFK2lGdEQ0T1pxWitQdk9EN2VxYTZuWHhRak9Rc0ZrWlh6eVI1eTF1c1BVRkJBPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.7/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW55ekNIMVFvSER3SXIvTnZiWlZuaXBLWUxZSVBWNVBnNkhoNWwxT1R6VHZ1VkNBVTZPN1ltMWx1dTJiZE1KL1J2OXBLR0dkWjRuMUF3OHR6cS9OT1FFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgyODE2MzgwCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm03aE1QYUxXYzZ2MDJFTWpwNHFsOHNueFhUbXdidTRRcGlqdUZBT0VHTHIvczZEejQ0TkU4c0ttTDRsMWZHanE3bmdVdVBYOXg1anl0Mk1UTDMzWUFnPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.5/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXRkUW80cU9RdHNXd09ENEpidkRTWVNXZUo4WFd2OE1SOG5hOUY0cXdDNWpmNi9vWW9wUjYxZVRobll5MFFCeXkveFZMVzBscWpNcEsvUkxHNmlHMkFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTEwMjU2CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CjkzRVQyWkMwMEh2OTliMXdrZEpNWXJYMkhIWmY2NVZ0eEpDVWllclZFK2lGdEQ0T1pxWitQdk9EN2VxYTZuWHhRak9Rc0ZrWlh6eVI1eTF1c1BVRkJBPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.7/Schedule.Manager.app.tar.gz"
     }
   }
 }

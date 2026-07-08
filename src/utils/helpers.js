@@ -5,13 +5,13 @@ import { getApiBase } from '../platform';
 export function formatTime(date) {
   if (!date) return '';
   const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
 }
 
 export function formatDate(date) {
   if (!date) return '';
   const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
 }
 
 export function getRelativeTime(date) {

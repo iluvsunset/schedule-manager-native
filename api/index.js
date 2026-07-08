@@ -16,7 +16,8 @@ module.exports = async (req, res) => {
       '/api/places': require('../server/places.js'),
       '/api/places/search': require('../server/places.js'),
       '/api/share': require('../server/share.js'),
-      '/api/sync-event-gcal': require('../server/sync-event-gcal.js')
+      '/api/sync-event-gcal': require('../server/sync-event-gcal.js'),
+      '/api/renew-webhooks': require('../server/renew-webhooks.js')
     };
 
     // Global CORS headers for all responses

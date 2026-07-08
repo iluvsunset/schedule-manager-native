@@ -24,6 +24,12 @@ module.exports = async function handler(req, res) {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
+    const hasCalendarScope = tokens.scope && tokens.scope.includes('https://www.googleapis.com/auth/calendar.events');
+
+    if (!hasCalendarScope) {
+      return res.redirect('/?gcal_error=Permission+Denied:+Calendar+Access+Required');
+    }
+
     const db = admin.firestore();
     
     // 1. Save Tokens to Firestore

@@ -308,7 +308,7 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
       if (studentEmails.length > 0 && sharedCount > 0) {
         const firstEvent = matchingEvents[0];
         const start = firstEvent.start.dateTime ? new Date(firstEvent.start.dateTime) : new Date(firstEvent.start.date);
-        const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
         const timeStr = firstEvent.start.dateTime ? formatTime(start) : 'All Day';
         for (const email of studentEmails) {
           const emailData = { place: selectedEventName, date: formattedDate, time: timeStr, notes: additionalNotes, link: getWebDomain() };
@@ -429,7 +429,7 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
                 const end = event.end.dateTime ? new Date(event.end.dateTime) : null;
                 const isAllDay = !event.start.dateTime;
                 const timeStr = isAllDay ? 'All day' : `${formatTime(start)}${end ? ' – ' + formatTime(end) : ''}`;
-                const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
                 const isShared = sharedIds.has(event.id);
                 const color = colors[idx % colors.length];
 
@@ -596,7 +596,7 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
                         const start = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date);
                         const isAllDay = !event.start.dateTime;
                         const timeStr = isAllDay ? 'All Day' : formatTime(start);
-                        const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                        const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
                         const isPast = start < new Date();
                         const alreadyShared = sharedIds.has(event.id);
 

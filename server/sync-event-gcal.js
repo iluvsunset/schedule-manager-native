@@ -150,6 +150,17 @@ module.exports = async function handler(req, res) {
 
       } catch (err) {
         console.error(`Error syncing for ${emailLower}:`, err.message);
+        
+        // If the token lacks permissions (e.g. they unchecked it or only logged in to the native app), delete it so we don't keep trying
+        if (err.message.includes('insufficient authentication scopes') || err.message.includes('invalid_grant')) {
+          try {
+            await db.collection('gcal_tokens').doc(uid).delete();
+            console.log(`Deleted invalid or insufficient token for ${emailLower}`);
+          } catch (deleteErr) {
+            console.error('Failed to delete invalid token:', deleteErr);
+          }
+        }
+        
         errors.push({ email: emailLower, error: err.message });
       }
     }

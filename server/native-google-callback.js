@@ -159,34 +159,38 @@ module.exports = async function handler(req, res) {
     });
     const uid = firebaseUser.uid;
 
-    // 1. Save GCal Tokens for Background Webhook Sync
-    const db = admin.firestore();
-    const tokenRef = db.collection('gcal_tokens').doc(uid);
-    await tokenRef.set({
-      refresh_token: tokens.refresh_token,
-      access_token: tokens.access_token,
-      expiry_date: tokens.expiry_date,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    const hasCalendarScope = tokens.scope && tokens.scope.includes('https://www.googleapis.com/auth/calendar.events');
 
-    // 2. Register Webhook for Push Notifications
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    const channelId = crypto.randomUUID();
-    const webhookUrl = 'https://schedule-iluvsunset.vercel.app/api/gcal-webhook';
-    
-    try {
-      await calendar.events.watch({
-        calendarId: 'primary',
-        requestBody: {
-          id: channelId,
-          type: 'web_hook',
-          address: webhookUrl,
-          token: uid, // Pass uid so webhook knows whose calendar was updated
-        }
-      });
-      console.log(`Registered GCal webhook for Native User: ${uid}`);
-    } catch (watchErr) {
-      console.error('Failed to register webhook:', watchErr.message);
+    if (hasCalendarScope) {
+      // 1. Save GCal Tokens for Background Webhook Sync
+      const db = admin.firestore();
+      const tokenRef = db.collection('gcal_tokens').doc(uid);
+      await tokenRef.set({
+        refresh_token: tokens.refresh_token,
+        access_token: tokens.access_token,
+        expiry_date: tokens.expiry_date,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // 2. Register Webhook for Push Notifications
+      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+      const channelId = crypto.randomUUID();
+      const webhookUrl = 'https://schedule-iluvsunset.vercel.app/api/gcal-webhook';
+      
+      try {
+        await calendar.events.watch({
+          calendarId: 'primary',
+          requestBody: {
+            id: channelId,
+            type: 'web_hook',
+            address: webhookUrl,
+            token: uid, // Pass uid so webhook knows whose calendar was updated
+          }
+        });
+        console.log(`Registered GCal webhook for Native User: ${uid}`);
+      } catch (watchErr) {
+        console.error('Failed to register webhook:', watchErr.message);
+      }
     }
 
     const { state } = req.query;

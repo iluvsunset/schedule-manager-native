@@ -289,7 +289,7 @@ module.exports = async function handler(req, res) {
         
         // Direct DB check to find existing synced events
         const dupSnapLegacy = await db.collection('schedules').where('gcalEventId', '==', event.id).get();
-        const dupSnapIds = userEmail ? await db.collection('schedules').where(`gcalEventIds.${userEmail}`, '==', event.id).get() : { empty: true, docs: [] };
+        const dupSnapIds = userEmail ? await db.collection('schedules').where(new admin.firestore.FieldPath('gcalEventIds', userEmail), '==', event.id).get() : { empty: true, docs: [] };
         const dupSnapExported = await db.collection('schedules').where('exportedGcalEventId', '==', event.id).get();
         
         const dupSnap = {
@@ -352,7 +352,7 @@ module.exports = async function handler(req, res) {
           continue; 
         }
         
-        const summary = (event.summary || '').trim();
+        let summary = (event.summary || '').trim();
         if (!summary) continue;
   
         const rule = rules.find(r => r.eventName.trim().toLowerCase() === summary.toLowerCase());
@@ -371,6 +371,11 @@ module.exports = async function handler(req, res) {
             endDate: end ? admin.firestore.Timestamp.fromDate(end) : null,
             notes: event.description || data.notes || 'Automatically synced from Google Calendar',
           };
+
+          // Strip any accidental 'Class: ' prefixes that might still exist on student calendars
+          while (summary && summary.startsWith('Class: ')) {
+            summary = summary.substring(7);
+          }
 
           // 1. Only update place name if summary changed from originally synced summary
           const oldOriginalSummary = data.originalSummary || data.place || '';

@@ -9,6 +9,11 @@ module.exports = async function(req, res) {
     return res.status(400).json({ error: "Missing 'query' parameter in request body." });
   }
 
+  // Do not try to scrape Google Calendar event links as Places!
+  if (query.includes('google.com/calendar/event')) {
+    return res.status(200).json({ error: "Calendar Link Skipped" });
+  }
+
   const cacheKey = query.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
   const db = admin ? admin.firestore() : null;
 

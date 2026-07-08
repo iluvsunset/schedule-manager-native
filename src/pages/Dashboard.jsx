@@ -358,22 +358,19 @@ export default function Dashboard() {
     const email = currentUser.email?.toLowerCase();
     if (email !== 'bao.h0146824@gmail.com' && email !== 'sunsetmyfav@gmail.com') return;
     
-    const hasBroadcasted = localStorage.getItem('changelog_broadcast_done');
+    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v017');
     if (hasBroadcasted) return;
 
     const broadcastChangelog = async () => {
       try {
-        const message = `🚀 Chronos Upgrade Released!
-• Unified Desktop & Web Experience: Deprecated the mobile dashboard for a single, fully responsive dashboard.
-• Calendar Quick Actions: Clicking a calendar day now opens a compact card listing events with immediate action buttons (Start, Complete, Cancel, Delete, Details).
-• Detail Modal Toolbar: Manage events directly from the Detail Modal with a beautiful bottom action toolbar.`;
+        const message = `🚀 v0.1.7 — Bug Fix Release\n• ⏰ Timezone Fix: All event times now display in Vietnam time (UTC+7) no matter where you open the app.\n• 🔄 Webhook Overhaul: Google Calendar sync now correctly detects when a teacher reschedules an event and updates all students instantly.\n• 🧹 Smart Token Cleanup: Server auto-removes bad GCal tokens that lack permissions, stopping spam sync errors.\n• 🔁 Auto Webhook Renewal: Webhook channels now auto-renew every 6 days so they never silently expire again.`;
 
         await setDoc(doc(db, 'system_settings', 'announcements'), {
           message: message,
           timestamp: Timestamp.now()
         });
-        localStorage.setItem('changelog_broadcast_done', 'true');
-        console.log("Changelog announcement broadcasted successfully via client!");
+        localStorage.setItem('changelog_broadcast_v017', 'true');
+        console.log("Changelog v0.1.7 announcement broadcasted successfully!");
       } catch (err) {
         console.error("Failed to broadcast changelog from client:", err);
       }
