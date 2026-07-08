@@ -2,6 +2,26 @@
 const { admin, getOAuthClient, sendEmail } = require('./_utils');
 const { google } = require('googleapis');
 
+function cleanGcalNotes(description, fallbackNotes) {
+  let notes = description || fallbackNotes || 'Automatically synced from Google Calendar';
+  if (notes.includes('Managed by Schedule Manager') || notes.includes('📚 Class:')) {
+    let clean = notes;
+    // Strip simple HTML breaks if they exist
+    clean = clean.replace(/<br\s*\/?>/gi, '\n');
+    // Remove all automated lines
+    clean = clean.replace(/📚 Class:.*?(?:\n|$)/g, '');
+    clean = clean.replace(/📝 Notes:\s*/g, '');
+    clean = clean.replace(/Managed by Schedule Manager\.?/g, '');
+    clean = clean.replace(/📋 Assignment:.*?(?:\n|$)/g, '');
+    clean = clean.replace(/⏰ Due:.*?(?:\n|$)/g, '');
+    clean = clean.replace(/🔗 Link:.*?(?:\n|$)/g, '');
+    clean = clean.replace(/💡 Learned:.*?(?:\n|$)/g, '');
+    clean = clean.replace(/📖 Review:.*?(?:\n|$)/g, '');
+    clean = clean.trim();
+    return clean || 'None';
+  }
+  return notes;
+}
 function getWebhookEmailTemplate({ title, superTitle, body, btnText, btnColor, btnLink }) {
   return `
     <!DOCTYPE html>
@@ -369,7 +389,7 @@ module.exports = async function handler(req, res) {
           const updateData = {
             date: admin.firestore.Timestamp.fromDate(start),
             endDate: end ? admin.firestore.Timestamp.fromDate(end) : null,
-            notes: event.description || data.notes || 'Automatically synced from Google Calendar',
+            notes: cleanGcalNotes(event.description, data.notes),
           };
 
           // Strip any accidental 'Class: ' prefixes that might still exist on student calendars
@@ -500,7 +520,7 @@ module.exports = async function handler(req, res) {
           location: event.location || event.hangoutLink || event.htmlLink || '',
           originalSummary: summary || 'Google Calendar Event',
           gcalLocation: event.location || event.hangoutLink || event.htmlLink || '',
-          notes: event.description || 'Automatically synced from Google Calendar',
+          notes: cleanGcalNotes(event.description, null),
           participants: rule.participants,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           status: 'upcoming',
