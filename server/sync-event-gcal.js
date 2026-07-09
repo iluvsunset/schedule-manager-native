@@ -116,10 +116,14 @@ module.exports = async function handler(req, res) {
         if (schedule.reviewNotes) descParts.push(`📖 Review: ${schedule.reviewNotes}`);
         descParts.push('\nManaged by Schedule Manager.');
 
+        // Only use location if it's a real physical address — strip Google Calendar URLs, Meet links, or any raw URL
+        const rawLocation = schedule.location || '';
+        const cleanLocation = /^https?:\/\//i.test(rawLocation.trim()) ? '' : rawLocation;
+
         const eventPayload = {
           summary: schedule.place || schedule.classId || 'Event',
           description: descParts.join('\n'),
-          location: schedule.location || '',
+          location: cleanLocation,
           start: { dateTime: startTime.toISOString(), timeZone: userTimezone },
           end: { dateTime: endTime.toISOString(), timeZone: userTimezone },
           reminders: { useDefault: false, overrides: overrides }
