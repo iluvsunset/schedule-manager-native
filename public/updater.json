@@ -1,15 +1,15 @@
 {
-  "version": "0.1.8",
-  "notes": "v0.1.8 — Smart Timezone Update\n• Adaptive Timezone: App now respects each user's preferred timezone (set in Profile) — no more forcing Vietnam time for everyone.\n• Email Time Fix: Notification emails now show the correct local time for each recipient based on their profile setting.\n• Calendar Sync Fix: Events no longer span multiple days — dates now sync accurately to Google Calendar.\n• Live Timezone: Changing your timezone in Profile takes effect instantly without re-login.\n• GCal Push Fix: Events pushed to Google Calendar now use the participant's own timezone.",
-  "pub_date": "2026-07-09T17:46:00Z",
+  "version": "0.1.9",
+  "notes": "v0.1.9 — GCal Export & Clean Location Update\n• Clean Location: Synced Google Calendar events now only show real physical addresses, stripping out ugly web URLs.\n• Export Timezone Fix: Manual GCal exports now correctly respect your timezone settings.\n• Event EndDate Sync: Fixed a bug where incorrect event endDates in Firestore could cause multi-day stretching.",
+  "pub_date": "2026-07-09T19:55:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXZDeXEyS3RGaHNSd1RCamt4bjJmMytTb3VHYW9BR040QjRiSWxYaDdrVzA1RExqWXoveHBvS3p4Ylo4NE5QVWV6cys2cW5HbnpBYmNpWGh2UlprZWdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjEyMTM5CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6ClltV1IySE1pUDRvUnRXU24wdkppNno2Rit0N24vdDFiQ0krUzRaSU1CWEJmcnJ6Ulg1Qk45ZFpyMWMwOGlKL0dvQ2h4TmErU0RaMERQbDRmWWdwUERBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.8/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWsxQ2pqR2RIQ0trSFBMeXE0U1I2VVVndjkzMjBnai9Na2llaDAxMWQ3STliNkl0NkRkV1FCY2xudFJHQ3NFbE1FK2xSS1NkU1J1MlA4UFg2U1J6TkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE5ODIzCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm5NeU5scW1aNCtEcGVrTERMRkFkemJGZU8zWTlHREc3T1lXaE5jUlFPTFcyM254T0QvRFFMZUo1SWVVMDlUankwT3drTGhsTFVSVkdFN3ZNaGlFakFBPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.9/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXZDeXEyS3RGaHNSd1RCamt4bjJmMytTb3VHYW9BR040QjRiSWxYaDdrVzA1RExqWXoveHBvS3p4Ylo4NE5QVWV6cys2cW5HbnpBYmNpWGh2UlprZWdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjEyMTM5CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6ClltV1IySE1pUDRvUnRXU24wdkppNno2Rit0N24vdDFiQ0krUzRaSU1CWEJmcnJ6Ulg1Qk45ZFpyMWMwOGlKL0dvQ2h4TmErU0RaMERQbDRmWWdwUERBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.8/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWsxQ2pqR2RIQ0trSFBMeXE0U1I2VVVndjkzMjBnai9Na2llaDAxMWQ3STliNkl0NkRkV1FCY2xudFJHQ3NFbE1FK2xSS1NkU1J1MlA4UFg2U1J6TkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE5ODIzCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm5NeU5scW1aNCtEcGVrTERMRkFkemJGZU8zWTlHREc3T1lXaE5jUlFPTFcyM254T0QvRFFMZUo1SWVVMDlUankwT3drTGhsTFVSVkdFN3ZNaGlFakFBPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.9/Schedule.Manager.app.tar.gz"
     }
   }
 }

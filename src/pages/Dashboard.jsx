@@ -358,19 +358,19 @@ export default function Dashboard() {
     const email = currentUser.email?.toLowerCase();
     if (email !== 'bao.h0146824@gmail.com' && email !== 'sunsetmyfav@gmail.com') return;
     
-    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v018');
+    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v019');
     if (hasBroadcasted) return;
 
     const broadcastChangelog = async () => {
       try {
-        const message = `🚀 v0.1.8 — Smart Timezone Update\n• 🌍 Adaptive Timezone: App now respects each user's preferred timezone (set in Profile) instead of forcing Vietnam time.\n• 📧 Email Time Fix: Notification emails now show the correct local time for each recipient.\n• 📅 Calendar Sync Fix: Events no longer span multiple days — dates now sync accurately to Google Calendar.\n• ⚡ Live Timezone: Changing your timezone in Profile takes effect instantly without re-login.`;
+        const message = `🚀 v0.1.9 — GCal Export & Clean Location Update\n• 📍 Clean Location: Synced Google Calendar events now only show real physical addresses, stripping out ugly web URLs.\n• 🌍 Export Timezone Fix: Manual GCal exports now correctly respect your timezone settings.\n• 📅 Event EndDate Sync: Fixed a bug where incorrect event endDates in Firestore could cause multi-day stretching.`;
 
         await setDoc(doc(db, 'system_settings', 'announcements'), {
           message: message,
           timestamp: Timestamp.now()
         });
-        localStorage.setItem('changelog_broadcast_v018', 'true');
-        console.log("Changelog v0.1.8 announcement broadcasted successfully!");
+        localStorage.setItem('changelog_broadcast_v019', 'true');
+        console.log("Changelog v0.1.9 announcement broadcasted successfully!");
       } catch (err) {
         console.error("Failed to broadcast changelog from client:", err);
       }

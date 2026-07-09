@@ -1,6 +1,6 @@
 {
   "name": "schedule-manager",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Enterprise Schedule Manager with Secure Email Backend",
   "scripts": {
     "dev": "npm start & vite --host",
