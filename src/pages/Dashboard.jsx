@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -146,6 +146,8 @@ export default function Dashboard() {
   }, [currentUser, userRole]);
  
   // 2b. Auto-Start & Auto-Complete Hook
+  const attemptedUpdates = useRef(new Set());
+
   useEffect(() => {
     if (schedules.length === 0 || !currentUser) return;
 
@@ -156,6 +158,10 @@ export default function Dashboard() {
 
       // 1. Auto-Start: 'upcoming' -> 'ongoing' if event time is met/passed
       if (s.status === 'upcoming' && date <= now) {
+        const key = `${s.id}_start`;
+        if (attemptedUpdates.current.has(key)) return;
+        attemptedUpdates.current.add(key);
+        
         try {
           console.log(`[Client Auto-Scheduler] Auto-starting event: "${s.place}"`);
           await updateDoc(doc(db, 'schedules', s.id), { status: 'ongoing' });
@@ -171,6 +177,10 @@ export default function Dashboard() {
         nextDayStart.setHours(0, 0, 0, 0); // 00:00 of the next calendar day
 
         if (now >= nextDayStart) {
+          const key = `${s.id}_complete`;
+          if (attemptedUpdates.current.has(key)) return;
+          attemptedUpdates.current.add(key);
+
           try {
             console.log(`[Client Auto-Scheduler] Auto-completing event: "${s.place}"`);
             await updateDoc(doc(db, 'schedules', s.id), { status: 'completed' });
@@ -358,19 +368,19 @@ export default function Dashboard() {
     const email = currentUser.email?.toLowerCase();
     if (email !== 'bao.h0146824@gmail.com' && email !== 'sunsetmyfav@gmail.com') return;
     
-    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v0111');
+    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v0112');
     if (hasBroadcasted) return;
 
     const broadcastChangelog = async () => {
       try {
-        const message = `🚀 v0.1.11 — Performance & System Update\n• ⚡ Performance: General stability and speed improvements across the dashboard.\n• 🔔 Notification Stabilization: Resolved background permission handshake issues to ensure notification delivery.`;
+        const message = `🚀 v0.1.12 — Performance & System Update\n• ⚡ Performance: General stability and speed improvements across the dashboard.\n• 🔔 Notification Stabilization: Resolved background permission handshake issues to ensure notification delivery.`;
 
         await setDoc(doc(db, 'system_settings', 'announcements'), {
           message: message,
           timestamp: Timestamp.now()
         });
-        localStorage.setItem('changelog_broadcast_v0111', 'true');
-        console.log("Changelog v0.1.11 announcement broadcasted successfully!");
+        localStorage.setItem('changelog_broadcast_v0112', 'true');
+        console.log("Changelog v0.1.12 announcement broadcasted successfully!");
       } catch (err) {
         console.error("Failed to broadcast changelog from client:", err);
       }

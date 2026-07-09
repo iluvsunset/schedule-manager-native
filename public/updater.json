@@ -1,15 +1,15 @@
 {
-  "version": "0.1.11",
-  "notes": "v0.1.11 — Developer Notifications Card\n• 🔔 System Config Tools: Added a developer card to the System Config section in Admin Panel, allowing you to test local notification formats and check OS permissions in real-time.",
-  "pub_date": "2026-07-09T20:27:00Z",
+  "version": "0.1.12",
+  "notes": "v0.1.12 — Performance & System Update\n• ⚡ Performance: General stability and speed improvements across the dashboard.\n• 🔔 Notification Stabilization: Resolved background permission handshake issues to ensure notification delivery.",
+  "pub_date": "2026-07-09T20:36:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWttS3ZHWjRSbWNRZ0owR05adnlWUUxUekE4QlMzaTVnMjJoR2piTm9SSXRSRGZKbmM5TXZLNmh4cmk1cndNakJpMGdOZC9KUTY2T2VIbWkweE1oVlFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjIxNzE1CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CndiZnJpbVorK01uM29WTXNKZ21IMFEvVFlNUjVkb1h3Wk0wUDJHYUtyUmdmcUdtYUlZbTJ4WEJYckE0NmxLdlVPUjhlV2kvYnJnRlV6bENZSk9rS0JBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.11/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW1OL1dpSU1oM3VvNURGbWp0bWNDNHIvYzRjVlBYd0dXR3NobVA1YlZCd3VWenM5eHRIdTdXYWFzditKL0Q4OHNzZU1uZW04TDdMeTZJclB3OE1KaGc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjIyMzA5CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Ci9yZ1djeTNoRkZmeVQ5UlF2emZQaElCek91eU0wQmNWeDE3cDc5dlhhWko5dDBXRi9nL1lSY200dWJQNENOK0ltbWlyQ1RoNnFCVUtzaGorc281UEFnPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.12/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWttS3ZHWjRSbWNRZ0owR05adnlWUUxUekE4QlMzaTVnMjJoR2piTm9SSXRSRGZKbmM5TXZLNmh4cmk1cndNakJpMGdOZC9KUTY2T2VIbWkweE1oVlFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjIxNzE1CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CndiZnJpbVorK01uM29WTXNKZ21IMFEvVFlNUjVkb1h3Wk0wUDJHYUtyUmdmcUdtYUlZbTJ4WEJYckE0NmxLdlVPUjhlV2kvYnJnRlV6bENZSk9rS0JBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.11/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUW1OL1dpSU1oM3VvNURGbWp0bWNDNHIvYzRjVlBYd0dXR3NobVA1YlZCd3VWenM5eHRIdTdXYWFzditKL0Q4OHNzZU1uZW04TDdMeTZJclB3OE1KaGc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjIyMzA5CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Ci9yZ1djeTNoRkZmeVQ5UlF2emZQaElCek91eU0wQmNWeDE3cDc5dlhhWko5dDBXRi9nL1lSY200dWJQNENOK0ltbWlyQ1RoNnFCVUtzaGorc281UEFnPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.12/Schedule.Manager.app.tar.gz"
     }
   }
 }
