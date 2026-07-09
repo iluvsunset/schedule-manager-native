@@ -358,19 +358,19 @@ export default function Dashboard() {
     const email = currentUser.email?.toLowerCase();
     if (email !== 'bao.h0146824@gmail.com' && email !== 'sunsetmyfav@gmail.com') return;
     
-    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v0110');
+    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v0111');
     if (hasBroadcasted) return;
 
     const broadcastChangelog = async () => {
       try {
-        const message = `🚀 v0.1.10 — macOS Location Services Fix\n• 📍 macOS Geolocation Prompt: Added missing macOS-specific location description keys to enable system prompt trigger on desktop.\n• 🔔 Permissions Check: Local notification requests now reliably prompt on first launch.`;
+        const message = `🚀 v0.1.11 — Developer Notifications Card\n• 🔔 System Config Tools: Added a developer card to the System Config section in Admin Panel, allowing you to test local notification formats and check OS permissions in real-time.`;
 
         await setDoc(doc(db, 'system_settings', 'announcements'), {
           message: message,
           timestamp: Timestamp.now()
         });
-        localStorage.setItem('changelog_broadcast_v0110', 'true');
-        console.log("Changelog v0.1.10 announcement broadcasted successfully!");
+        localStorage.setItem('changelog_broadcast_v0111', 'true');
+        console.log("Changelog v0.1.11 announcement broadcasted successfully!");
       } catch (err) {
         console.error("Failed to broadcast changelog from client:", err);
       }
