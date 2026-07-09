@@ -4,11 +4,11 @@
   "pub_date": "2026-07-09T17:46:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "PLACEHOLDER_SIGNATURE_AARCH64",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXZDeXEyS3RGaHNSd1RCamt4bjJmMytTb3VHYW9BR040QjRiSWxYaDdrVzA1RExqWXoveHBvS3p4Ylo4NE5QVWV6cys2cW5HbnpBYmNpWGh2UlprZWdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjEyMTM5CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6ClltV1IySE1pUDRvUnRXU24wdkppNno2Rit0N24vdDFiQ0krUzRaSU1CWEJmcnJ6Ulg1Qk45ZFpyMWMwOGlKL0dvQ2h4TmErU0RaMERQbDRmWWdwUERBPT0K",
       "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.8/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "PLACEHOLDER_SIGNATURE_X86_64",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXZDeXEyS3RGaHNSd1RCamt4bjJmMytTb3VHYW9BR040QjRiSWxYaDdrVzA1RExqWXoveHBvS3p4Ylo4NE5QVWV6cys2cW5HbnpBYmNpWGh2UlprZWdRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjEyMTM5CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6ClltV1IySE1pUDRvUnRXU24wdkppNno2Rit0N24vdDFiQ0krUzRaSU1CWEJmcnJ6Ulg1Qk45ZFpyMWMwOGlKL0dvQ2h4TmErU0RaMERQbDRmWWdwUERBPT0K",
       "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.8/Schedule.Manager.app.tar.gz"
     }
   }
