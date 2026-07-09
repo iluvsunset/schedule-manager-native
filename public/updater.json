@@ -1,15 +1,15 @@
 {
-  "version": "0.1.9",
-  "notes": "v0.1.9 — GCal Export & Clean Location Update\n• Clean Location: Synced Google Calendar events now only show real physical addresses, stripping out ugly web URLs.\n• Export Timezone Fix: Manual GCal exports now correctly respect your timezone settings.\n• Event EndDate Sync: Fixed a bug where incorrect event endDates in Firestore could cause multi-day stretching.",
-  "pub_date": "2026-07-09T19:55:00Z",
+  "version": "0.1.10",
+  "notes": "v0.1.10 — macOS Location Services Fix\n• 📍 macOS Geolocation Prompt: Added missing macOS-specific location description keys to enable system prompt trigger on desktop.\n• 🔔 Permissions Check: Local notification requests now reliably prompt on first launch.",
+  "pub_date": "2026-07-09T20:14:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWsxQ2pqR2RIQ0trSFBMeXE0U1I2VVVndjkzMjBnai9Na2llaDAxMWQ3STliNkl0NkRkV1FCY2xudFJHQ3NFbE1FK2xSS1NkU1J1MlA4UFg2U1J6TkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE5ODIzCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm5NeU5scW1aNCtEcGVrTERMRkFkemJGZU8zWTlHREc3T1lXaE5jUlFPTFcyM254T0QvRFFMZUo1SWVVMDlUankwT3drTGhsTFVSVkdFN3ZNaGlFakFBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.9/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWswV2NnNUdub29TV2IyZEYxa0NzcFBZYzVCamlLSDk3NXBQWDVleGF4ZVNRb21IeVQ3dGZzaWRJRmZIN2FNMmthcWxab2VwUFhXaGNmZ2RjUHJoZVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjIwOTMxCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CmZzeXd3Qy9jYXVkZ3NDRCtGcDdQakRqalV4UEJkY1BqK3NjSDMrY0lwVTN3VmI5UVdTOEZjblNQNzRWNDhiV2pUSW0wbm04NldIc0hxKzJ6ZW5YNkJBPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.10/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWsxQ2pqR2RIQ0trSFBMeXE0U1I2VVVndjkzMjBnai9Na2llaDAxMWQ3STliNkl0NkRkV1FCY2xudFJHQ3NFbE1FK2xSS1NkU1J1MlA4UFg2U1J6TkFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjE5ODIzCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6Cm5NeU5scW1aNCtEcGVrTERMRkFkemJGZU8zWTlHREc3T1lXaE5jUlFPTFcyM254T0QvRFFMZUo1SWVVMDlUankwT3drTGhsTFVSVkdFN3ZNaGlFakFBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.9/Schedule.Manager.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUWswV2NnNUdub29TV2IyZEYxa0NzcFBZYzVCamlLSDk3NXBQWDVleGF4ZVNRb21IeVQ3dGZzaWRJRmZIN2FNMmthcWxab2VwUFhXaGNmZ2RjUHJoZVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNjIwOTMxCWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CmZzeXd3Qy9jYXVkZ3NDRCtGcDdQakRqalV4UEJkY1BqK3NjSDMrY0lwVTN3VmI5UVdTOEZjblNQNzRWNDhiV2pUSW0wbm04NldIc0hxKzJ6ZW5YNkJBPT0K",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.10/Schedule.Manager.app.tar.gz"
     }
   }
 }

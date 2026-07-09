@@ -358,19 +358,19 @@ export default function Dashboard() {
     const email = currentUser.email?.toLowerCase();
     if (email !== 'bao.h0146824@gmail.com' && email !== 'sunsetmyfav@gmail.com') return;
     
-    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v019');
+    const hasBroadcasted = localStorage.getItem('changelog_broadcast_v0110');
     if (hasBroadcasted) return;
 
     const broadcastChangelog = async () => {
       try {
-        const message = `🚀 v0.1.9 — GCal Export & Clean Location Update\n• 📍 Clean Location: Synced Google Calendar events now only show real physical addresses, stripping out ugly web URLs.\n• 🌍 Export Timezone Fix: Manual GCal exports now correctly respect your timezone settings.\n• 📅 Event EndDate Sync: Fixed a bug where incorrect event endDates in Firestore could cause multi-day stretching.`;
+        const message = `🚀 v0.1.10 — macOS Location Services Fix\n• 📍 macOS Geolocation Prompt: Added missing macOS-specific location description keys to enable system prompt trigger on desktop.\n• 🔔 Permissions Check: Local notification requests now reliably prompt on first launch.`;
 
         await setDoc(doc(db, 'system_settings', 'announcements'), {
           message: message,
           timestamp: Timestamp.now()
         });
-        localStorage.setItem('changelog_broadcast_v019', 'true');
-        console.log("Changelog v0.1.9 announcement broadcasted successfully!");
+        localStorage.setItem('changelog_broadcast_v0110', 'true');
+        console.log("Changelog v0.1.10 announcement broadcasted successfully!");
       } catch (err) {
         console.error("Failed to broadcast changelog from client:", err);
       }

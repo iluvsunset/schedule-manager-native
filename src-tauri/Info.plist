@@ -18,5 +18,7 @@
   <string>We need your location to search for places near you on Google Maps.</string>
   <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
   <string>We need your location to search for places near you on Google Maps.</string>
+  <key>NSLocationUsageDescription</key>
+  <string>We need your location to search for places near you on Google Maps.</string>
 </dict>
 </plist>
