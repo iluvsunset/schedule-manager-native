@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { getApiBase, getWebDomain } from '../platform';
+import { getApiBase, getWebDomain, requestLocalNotificationPermission, triggerLocalNotification } from '../platform';
 import { showMessage, formatTime, formatDate, syncGcalBackground } from '../utils/helpers';
 import Topbar from '../components/layout/Topbar';
 import { ConfirmModal } from '../components/dashboard/Modals';
@@ -14,7 +14,7 @@ import {
   Users, BookOpen, Settings, ArrowLeft, Search, LogOut, UserX, UserPlus, 
   PieChart, Edit, Trash2, PlusSquare, Monitor, 
   Wrench, Link as LinkIcon, ShieldAlert, Megaphone, ScrollText, CalendarX2,
-  Server, Shield, Mail, AlertTriangle, Database, FastForward, Zap
+  Server, Shield, Mail, AlertTriangle, Database, FastForward, Zap, Bell
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import WebGLBackground from '../components/WebGLBackground';
@@ -1496,6 +1496,46 @@ export default function AdminPanel() {
                           <button onClick={handleBatchAssignBrandClass} className="glow-button btn btn-full" style={{ color: '#a78bfa', borderColor: 'rgba(167, 139, 250, 0.3)', padding: '12px', fontSize: '13px', justifyContent: 'center' }}>
                             Override All Contexts
                           </button>
+                        </motion.div>
+
+                        {/* Developer & Local Notifications Test */}
+                        <motion.div 
+                          className="glass-it-card" 
+                          variants={{ hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1 } }}
+                          style={{ borderTop: '4px solid rgba(16, 185, 129, 0.5)' }}
+                        >
+                          <h4 style={{ color: '#10b981', fontSize: '15px', marginBottom: '16px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '0.05em' }}>
+                            <Bell size={18} /> DEVELOPER NOTIFICATIONS
+                          </h4>
+                          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.5' }}>
+                            Trigger local notifications and test alert formats directly on your device.
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <button 
+                              onClick={async () => {
+                                const allowed = await requestLocalNotificationPermission();
+                                showMessage(allowed ? 'Notifications permission granted!' : 'Permission denied/ignored.', allowed ? 'success' : 'error');
+                              }} 
+                              className="glow-button btn btn-full" 
+                              style={{ fontSize: '12px', padding: '10px', color: 'var(--text-primary)', justifyContent: 'center' }}
+                            >
+                              Request OS Permission
+                            </button>
+                            <button 
+                              onClick={() => triggerLocalNotification('Test Alert 🔔', 'This is a test notification from the IT Console!')} 
+                              className="glow-button btn btn-full" 
+                              style={{ fontSize: '12px', padding: '10px', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)', justifyContent: 'center' }}
+                            >
+                              Send Test Notification
+                            </button>
+                            <button 
+                              onClick={() => triggerLocalNotification('📚 Class Reminder', 'Your class "Tutor Bin" is starting in 1 hour! (4:00 PM)')} 
+                              className="glow-button btn btn-full" 
+                              style={{ fontSize: '12px', padding: '10px', color: '#60a5fa', borderColor: 'rgba(96, 165, 250, 0.3)', justifyContent: 'center' }}
+                            >
+                              Simulate 1-Hour Class Alert
+                            </button>
+                          </div>
                         </motion.div>
                       </motion.div>
                     </div>

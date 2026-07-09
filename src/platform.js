@@ -158,3 +158,48 @@ export async function openExternalUrl(url) {
     window.open(url, '_blank');
   }
 }
+
+/**
+ * Request notification permissions locally on the platform
+ */
+export async function requestLocalNotificationPermission() {
+  if (isTauri()) {
+    try {
+      const { isPermissionGranted, requestPermission } = await import('@tauri-apps/plugin-notification');
+      let allowed = await isPermissionGranted();
+      if (!allowed) {
+        const permission = await requestPermission();
+        allowed = (permission === 'granted');
+      }
+      return allowed;
+    } catch (e) {
+      console.error("Failed to request local notification permission via Tauri:", e);
+      return false;
+    }
+  } else {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
+  }
+  return false;
+}
+
+/**
+ * Triggers a platform-native notification banner locally
+ */
+export async function triggerLocalNotification(title, body) {
+  if (isTauri()) {
+    try {
+      const { sendNotification } = await import('@tauri-apps/plugin-notification');
+      sendNotification({ title, body });
+    } catch (e) {
+      console.error("Failed to trigger local notification via Tauri:", e);
+    }
+  } else {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  }
+}
+
