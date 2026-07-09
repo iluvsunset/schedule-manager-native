@@ -46,6 +46,7 @@ module.exports = async function handler(req, res) {
     const userSnap = await db.collection('allowed_users').doc(email.toLowerCase()).get();
     const userData = userSnap.exists ? userSnap.data() : {};
     const offsets = userData.emailReminderOffsets || [24]; // default 24h
+    const userTimezone = userData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     // Create GCal reminder overrides based on user offsets
     const overrides = offsets.map(offsetHours => ({
@@ -116,17 +117,21 @@ module.exports = async function handler(req, res) {
       if (schedule.reviewNotes) descParts.push(`📖 Review: ${schedule.reviewNotes}`);
       descParts.push('\nManaged by Schedule Manager.');
 
+      // Only use location if it's a real physical address — strip Google Calendar URLs or any raw URL
+      const rawLocation = schedule.location || '';
+      const cleanLocation = /^https?:\/\//i.test(rawLocation.trim()) ? '' : rawLocation;
+
       const eventPayload = {
         summary: `Class: ${schedule.place || schedule.classId}`,
         description: descParts.join('\n'),
-        location: schedule.location || '',
+        location: cleanLocation,
         start: {
           dateTime: startTime.toISOString(),
-          timeZone: 'UTC',
+          timeZone: userTimezone,
         },
         end: {
           dateTime: endTime.toISOString(),
-          timeZone: 'UTC',
+          timeZone: userTimezone,
         },
         reminders: {
           useDefault: false,
