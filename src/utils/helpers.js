@@ -2,16 +2,18 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getApiBase } from '../platform';
 
-export function formatTime(date) {
+export function formatTime(date, tz) {
   if (!date) return '';
   const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+  const timeZone = tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
 }
 
-export function formatDate(date) {
+export function formatDate(date, tz) {
   if (!date) return '';
   const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
+  const timeZone = tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone });
 }
 
 export function getRelativeTime(date) {

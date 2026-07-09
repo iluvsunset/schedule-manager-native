@@ -949,6 +949,7 @@ export function EventDetailModal({
 
 // ── CREATE EVENT MODAL ────────────────────────────────────────
 export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedules, currentUser }) {
+  const { userTimezone } = useAuth();
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -1144,7 +1145,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
       if (s.status === 'completed') return false;
       const d = s.date?.toDate ? s.date.toDate() : new Date(s.date);
       const sDate = d.toISOString().split('T')[0];
-      const sTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' });
+      const sTime = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: userTimezone });
       return sDate === date && sTime === time && s.classId === selectedClassContext;
     });
 
@@ -1206,7 +1207,7 @@ export function CreateEventModal({ isOpen, onClose, selectedClassContext, schedu
 
       if (studentEmails.length > 0) {
         showMessage('Sending notifications...', 'success');
-        const formattedDate = dateTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
+        const formattedDate = dateTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: userTimezone });
         const formattedTime = time || 'All day';
         for (const email of studentEmails) {
           const emailData = { place, date: formattedDate, time: formattedTime, notes, link: getWebDomain() };

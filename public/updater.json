@@ -1,15 +1,15 @@
 {
-  "version": "0.1.7",
-  "notes": "v0.1.7 — Bug Fix Release\n• Timezone Fix: All event times now always display in Vietnam time (UTC+7) regardless of where you open the app.\n• Webhook Overhaul: Google Calendar sync now correctly detects when a teacher reschedules an event and updates all students instantly.\n• Smart Token Cleanup: Server auto-removes bad GCal tokens that lack permissions, stopping spam sync errors.\n• Auto Webhook Renewal: Webhook channels now auto-renew every 6 days so they never silently expire again.",
-  "pub_date": "2026-07-08T11:31:00Z",
+  "version": "0.1.8",
+  "notes": "v0.1.8 — Smart Timezone Update\n• Adaptive Timezone: App now respects each user's preferred timezone (set in Profile) — no more forcing Vietnam time for everyone.\n• Email Time Fix: Notification emails now show the correct local time for each recipient based on their profile setting.\n• Calendar Sync Fix: Events no longer span multiple days — dates now sync accurately to Google Calendar.\n• Live Timezone: Changing your timezone in Profile takes effect instantly without re-login.\n• GCal Push Fix: Events pushed to Google Calendar now use the participant's own timezone.",
+  "pub_date": "2026-07-09T17:46:00Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXRkUW80cU9RdHNXd09ENEpidkRTWVNXZUo4WFd2OE1SOG5hOUY0cXdDNWpmNi9vWW9wUjYxZVRobll5MFFCeXkveFZMVzBscWpNcEsvUkxHNmlHMkFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTEwMjU2CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CjkzRVQyWkMwMEh2OTliMXdrZEpNWXJYMkhIWmY2NVZ0eEpDVWllclZFK2lGdEQ0T1pxWitQdk9EN2VxYTZuWHhRak9Rc0ZrWlh6eVI1eTF1c1BVRkJBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.7/Schedule.Manager.app.tar.gz"
+      "signature": "PLACEHOLDER_SIGNATURE_AARCH64",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.8/Schedule.Manager.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUdzlrOUN5RnphUXRkUW80cU9RdHNXd09ENEpidkRTWVNXZUo4WFd2OE1SOG5hOUY0cXdDNWpmNi9vWW9wUjYxZVRobll5MFFCeXkveFZMVzBscWpNcEsvUkxHNmlHMkFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzgzNTEwMjU2CWZpbGU6U2NoZWR1bGUgTWFuYWdlci5hcHAudGFyLmd6CjkzRVQyWkMwMEh2OTliMXdrZEpNWXJYMkhIWmY2NVZ0eEpDVWllclZFK2lGdEQ0T1pxWitQdk9EN2VxYTZuWHhRak9Rc0ZrWlh6eVI1eTF1c1BVRkJBPT0K",
-      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.7/Schedule.Manager.app.tar.gz"
+      "signature": "PLACEHOLDER_SIGNATURE_X86_64",
+      "url": "https://github.com/iluvsunset/schedule-manager-native/releases/download/v0.1.8/Schedule.Manager.app.tar.gz"
     }
   }
 }

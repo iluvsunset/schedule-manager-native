@@ -74,6 +74,7 @@ export function AuthProvider({ children }) {
   const [userRole, setUserRole] = useState(null);
   const [userUsername, setUserUsername] = useState(null);
   const [userDisplayName, setUserDisplayName] = useState(null);
+  const [userTimezone, setUserTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [loading, setLoading] = useState(true);
   const [dynamicOverrides, setDynamicOverrides] = useState({});
   const [isGcalConnected, setIsGcalConnected] = useState(false);
@@ -121,6 +122,7 @@ export function AuthProvider({ children }) {
             let role = null;
             let username = null;
             let displayName = null;
+            let timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             if (res.ok) {
               const docData = await res.json();
               // Firestore REST API returns fields in { fieldName: { stringValue: "..." } } format
@@ -130,6 +132,7 @@ export function AuthProvider({ children }) {
               }
               username = docData.fields?.username?.stringValue || null;
               displayName = docData.fields?.displayName?.stringValue || null;
+              timezone = docData.fields?.timezone?.stringValue || timezone;
             }
             
             if (user.email.toLowerCase() === 'bao.h0146824@gmail.com' || user.email.toLowerCase() === 'sunsetmyfav@gmail.com') {
@@ -142,6 +145,7 @@ export function AuthProvider({ children }) {
               setUserRole(role);
               setUserUsername(username);
               setUserDisplayName(displayName);
+              setUserTimezone(timezone);
             } else {
               showMessage('Access Denied: Your account is not authorized to use this application.', 'error');
               await signOut(auth);
@@ -149,6 +153,7 @@ export function AuthProvider({ children }) {
               setUserRole(null);
               setUserUsername(null);
               setUserDisplayName(null);
+              setUserTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
             }
             lastError = null;
             break;
@@ -168,6 +173,7 @@ export function AuthProvider({ children }) {
         setUserRole(null);
         setUserUsername(null);
         setUserDisplayName(null);
+        setUserTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
         setIsGcalConnected(false);
       }
       setLoading(false);
@@ -420,8 +426,10 @@ export function AuthProvider({ children }) {
     userRole,
     userUsername,
     userDisplayName,
+    userTimezone,
     setUserUsername,
     setUserDisplayName,
+    setUserTimezone,
     login,
     signup,
     loginWithGoogle,

@@ -69,6 +69,7 @@ module.exports = async function handler(req, res) {
         const userSnap = await db.collection('allowed_users').doc(emailLower).get();
         const userData = userSnap.exists ? userSnap.data() : {};
         const offsets = userData.emailReminderOffsets || [24];
+        const userTimezone = userData.timezone || 'UTC';
 
         const overrides = offsets.map(offsetHours => ({
           method: 'popup',
@@ -119,8 +120,8 @@ module.exports = async function handler(req, res) {
           summary: schedule.place || schedule.classId || 'Event',
           description: descParts.join('\n'),
           location: schedule.location || '',
-          start: { dateTime: startTime.toISOString(), timeZone: 'UTC' },
-          end: { dateTime: endTime.toISOString(), timeZone: 'UTC' },
+          start: { dateTime: startTime.toISOString(), timeZone: userTimezone },
+          end: { dateTime: endTime.toISOString(), timeZone: userTimezone },
           reminders: { useDefault: false, overrides: overrides }
         };
 

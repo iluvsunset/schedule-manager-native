@@ -11,6 +11,7 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
   const { 
     currentUser, 
     userRole,
+    userTimezone,
     isGcalConnected, 
     connectGoogleCalendar, 
     disconnectGoogleCalendar 
@@ -308,8 +309,8 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
       if (studentEmails.length > 0 && sharedCount > 0) {
         const firstEvent = matchingEvents[0];
         const start = firstEvent.start.dateTime ? new Date(firstEvent.start.dateTime) : new Date(firstEvent.start.date);
-        const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
-        const timeStr = firstEvent.start.dateTime ? formatTime(start) : 'All Day';
+        const formattedDate = start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: userTimezone });
+        const timeStr = firstEvent.start.dateTime ? formatTime(start, userTimezone) : 'All Day';
         for (const email of studentEmails) {
           const emailData = { place: selectedEventName, date: formattedDate, time: timeStr, notes: additionalNotes, link: getWebDomain() };
           await sendDynamicEmail(currentUser, email, email.split('@')[0], `New Event (GCal): ${selectedEventName}`, emailData, 'schedule_created');
@@ -428,8 +429,8 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
                 const start = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date);
                 const end = event.end.dateTime ? new Date(event.end.dateTime) : null;
                 const isAllDay = !event.start.dateTime;
-                const timeStr = isAllDay ? 'All day' : `${formatTime(start)}${end ? ' – ' + formatTime(end) : ''}`;
-                const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
+                const timeStr = isAllDay ? 'All day' : `${formatTime(start, userTimezone)}${end ? ' – ' + formatTime(end, userTimezone) : ''}`;
+                const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: userTimezone });
                 const isShared = sharedIds.has(event.id);
                 const color = colors[idx % colors.length];
 
@@ -595,8 +596,8 @@ export default function GoogleCalendarView({ selectedClassContext = '' }) {
                       {matchingEvents.map((event, i) => {
                         const start = event.start.dateTime ? new Date(event.start.dateTime) : new Date(event.start.date);
                         const isAllDay = !event.start.dateTime;
-                        const timeStr = isAllDay ? 'All Day' : formatTime(start);
-                        const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' });
+                        const timeStr = isAllDay ? 'All Day' : formatTime(start, userTimezone);
+                        const dateStr = start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: userTimezone });
                         const isPast = start < new Date();
                         const alreadyShared = sharedIds.has(event.id);
 

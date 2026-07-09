@@ -123,11 +123,11 @@ const SegmentedControl = ({ options, selected, onChange, label, description }) =
 };
 
 export default function ProfilePage() {
-  const { currentUser, userRole, userDisplayName, setUserDisplayName, setUserUsername, resetPassword } = useAuth();
+  const { currentUser, userRole, userDisplayName, setUserDisplayName, setUserUsername, setUserTimezone, resetPassword } = useAuth();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState('');
-  const [timezone, setTimezone] = useState('Asia/Ho_Chi_Minh');
+  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [emailRemindersEnabled, setEmailRemindersEnabled] = useState(true);
   const [emailClassUpdatesEnabled, setEmailClassUpdatesEnabled] = useState(true);
@@ -205,7 +205,7 @@ export default function ProfilePage() {
         if (snap.exists()) {
           const data = snap.data();
           setDisplayName(data.displayName || data.username || '');
-          setTimezone(data.timezone || 'Asia/Ho_Chi_Minh');
+          setTimezone(data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
           setEmailNotificationsEnabled(data.emailNotificationsEnabled !== false);
           setEmailRemindersEnabled(data.emailRemindersEnabled !== false);
           setEmailClassUpdatesEnabled(data.emailClassUpdatesEnabled !== false);
@@ -257,6 +257,7 @@ export default function ProfilePage() {
 
       setUserDisplayName(cleanName);
       setUserUsername(cleanUsername);
+      setUserTimezone(timezone);
 
       // Save local storage options
       localStorage.setItem('webgl_enabled', webglEnabled ? 'true' : 'false');
